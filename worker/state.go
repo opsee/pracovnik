@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	StateInvalid stateId = iota // ignore 0
+	StateInvalid StateId = iota // ignore 0
 	StateOK
 	StateFailWait
 	StatePassWait
@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	stateFnMap   = map[stateId]stateFn{}
-	stateStrings = []string{
+	StateFnMap   = map[StateId]StateFn{}
+	StateStrings = []string{
 		"INVALID",
 		"OK",
 		"FAIL_WAIT",
@@ -29,20 +29,20 @@ var (
 )
 
 func init() {
-	stateFnMap[StateOK] = ok
-	stateFnMap[StateFailWait] = failWait
-	stateFnMap[StatePassWait] = passWait
-	stateFnMap[StateFail] = fail
-	stateFnMap[StateWarn] = warn
+	StateFnMap[StateOK] = ok
+	StateFnMap[StateFailWait] = failWait
+	StateFnMap[StatePassWait] = passWait
+	StateFnMap[StateFail] = fail
+	StateFnMap[StateWarn] = warn
 }
 
-type stateId int
+type StateId int
 
-type stateFn func(*state) stateId
+type StateFn func(*State) StateId
 
-type state struct {
+type State struct {
 	CheckId         string        `json:"check_id"`
-	Id              stateId       `json:"-"`
+	Id              StateId       `json:"-"`
 	State           string        `json:"state"`
 	TimeEntered     time.Time     `json:"time_entered"`
 	LastUpdate      time.Time     `json:"last_update"`
@@ -53,7 +53,7 @@ type state struct {
 	fails map[string]int // map[bastion_id]failing_count
 }
 
-func transition(state *state, result *schema.CheckResult) (*state, error) {
+func transition(state *State, result *schema.CheckResult) (*State, error) {
 	// update failing count.
 	var totalFails int
 
@@ -67,9 +67,9 @@ func transition(state *state, result *schema.CheckResult) (*state, error) {
 		state.LastUpdate = time.Now()
 	}
 
-	sFn, ok := stateFnMap[state.Id]
+	sFn, ok := StateFnMap[state.Id]
 	if !ok {
-		return nil, fmt.Errorf("Invalid state: %s", stateStrings[state.Id])
+		return nil, fmt.Errorf("Invalid state: %s", StateStrings[state.Id])
 	}
 
 	newSid := sFn(state)
@@ -83,12 +83,12 @@ func transition(state *state, result *schema.CheckResult) (*state, error) {
 		state.LastUpdate = t
 	}
 	state.Id = newSid
-	state.State = stateStrings[newSid]
+	state.State = StateStrings[newSid]
 
 	return state, nil
 }
 
-func ok(s *state) stateId {
+func ok(s *State) StateId {
 	switch {
 	case s.NumFailing == 0:
 		return StateOK
@@ -101,7 +101,7 @@ func ok(s *state) stateId {
 	return StateInvalid
 }
 
-func failWait(s *state) stateId {
+func failWait(s *State) StateId {
 	dt := s.LastUpdate.Sub(s.TimeEntered)
 
 	switch {
@@ -118,7 +118,7 @@ func failWait(s *state) stateId {
 	return StateInvalid
 }
 
-func passWait(s *state) stateId {
+func passWait(s *State) StateId {
 	dt := s.LastUpdate.Sub(s.TimeEntered)
 
 	switch {
@@ -135,7 +135,7 @@ func passWait(s *state) stateId {
 	return StateInvalid
 }
 
-func fail(s *state) stateId {
+func fail(s *State) StateId {
 	switch {
 	case s.NumFailing >= s.MinFailingCount:
 		return StateFail
@@ -146,7 +146,7 @@ func fail(s *state) stateId {
 	return StateInvalid
 }
 
-func warn(s *state) stateId {
+func warn(s *State) StateId {
 	switch {
 	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount:
 		return StateWarn

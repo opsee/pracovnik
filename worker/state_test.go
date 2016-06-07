@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testMockState(sid stateId, f, n int, t, te time.Time, tw time.Duration) *state {
-	return &state{
+func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *State {
+	return &State{
 		NumFailing:      n,
 		MinFailingCount: f,
 		TimeEntered:     te,
 		LastUpdate:      t,
 		Id:              sid,
-		State:           stateStrings[sid],
+		State:           StateStrings[sid],
 		MinFailingTime:  tw,
 		fails: map[string]int{
 			"bastion-id": n,
