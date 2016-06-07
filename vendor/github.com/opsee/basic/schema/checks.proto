@@ -39,6 +39,8 @@ message Check {
 	repeated Notification notifications = 9;
 	string customer_id = 10;
 	string execution_group_id = 11;
+	int32 min_failing_count = 12;
+	int64 min_failing_time = 13;
 }
 
 message Notification {
@@ -121,9 +123,6 @@ message CheckResponse {
 	}
 }
 
-// If we choose to store replies/responses separately in dynamodb, then
-// we can just add (gogoproto.moretags) = "dynamodbav:\"-\"" 
-// That will cause dyanmodbattribute.MarshalMap() to ignore them.
 message CheckResult {
 	string check_id = 1;
 	string customer_id = 2;

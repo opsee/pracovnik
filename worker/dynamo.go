@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,6 +40,43 @@ message CheckResult {
   Primary Key: check_id
   Sort Key: result_id = <bastion_id>:<timestamp>
 */
+
+func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, error) {
+	checkId := result.CheckId
+	customerId := result.CustomerId
+	bastionId := result.BastionId
+	if bastionId == "" {
+		bastionId = customerId
+	}
+
+	params := &dynamodb.QueryInput{
+		TableName:              aws.String(CheckResultTableName),
+		KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND begins_with(result_id, %s:)", checkId, bastionId)),
+		ScanIndexForward:       aws.Bool(true),
+		Select:                 aws.String("ALL_ATTRIBUTES"),
+		Limit:                  aws.Int64(1),
+	}
+
+	resp, err := dynaClient.Query(params)
+	if err != nil {
+		return nil, err
+	}
+
+	results := map[string]*schema.CheckResult{}
+	for _, item := range resp.Items {
+		bid := strings.Split(aws.StringValue(item["result_id"].S), ":")
+		bastionId := bid[0]
+
+		result := &schema.CheckResult{}
+		if err := dynamodbattribute.UnmarshalMap(item, result); err != nil {
+			return nil, err
+		}
+
+		results[bastionId] = result
+	}
+
+	return results, nil
+}
 
 func PutResult(result *schema.CheckResult) error {
 	var (

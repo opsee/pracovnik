@@ -40,41 +40,69 @@ type StateId int
 
 type StateFn func(*State) StateId
 
-type State struct {
-	CheckId         string        `json:"check_id"`
-	Id              StateId       `json:"-"`
-	State           string        `json:"state"`
-	TimeEntered     time.Time     `json:"time_entered"`
-	LastUpdate      time.Time     `json:"last_update"`
-	MinFailingCount int           `json:"min_failing_count"`
-	MinFailingTime  time.Duration `json:"min_failing_time"`
-	NumFailing      int           `json:"num_failing"`
+type ResultMemo struct {
+	CheckId       string `json:"check_id"`
+	CustomerId    string `json:"customer_id"`
+	BastionId     string `json:"bastion_id"`
+	NumFailing    int32  `json:"num_failing"`
+	ResponseCount int    `json:"response_count"`
 
-	fails map[string]int // map[bastion_id]failing_count
+	// LastUpdate is result.Timestamp.Millis()
+	LastUpdate int64 `json:"last_update"`
 }
 
-func transition(state *State, result *schema.CheckResult) (*State, error) {
-	// update failing count.
-	var totalFails int
+func ResultMemoFromCheckResult(result *schema.CheckResult) *ResultMemo {
+	bastionId := result.BastionId
+	if bastionId == "" {
+		bastionId = result.CustomerId
+	}
 
-	state.fails[result.BastionId] = result.FailingCount()
-	for _, c := range state.fails {
-		totalFails += c
+	return &ResultMemo{
+		CheckId:       result.CheckId,
+		CustomerId:    result.CustomerId,
+		BastionId:     bastionId,
+		NumFailing:    int32(result.FailingCount()),
+		ResponseCount: len(result.Responses),
+		LastUpdate:    result.Timestamp.Millis(),
+	}
+}
+
+type State struct {
+	CheckId         string                 `json:"check_id"`
+	CustomerId      string                 `json:"customer_id"`
+	Id              StateId                `json:"state_id"`
+	State           string                 `json:"state_name"`
+	TimeEntered     time.Time              `json:"time_entered"`
+	LastUpdate      time.Time              `json:"last_update"`
+	MinFailingCount int32                  `json:"min_failing_count"`
+	MinFailingTime  time.Duration          `json:"min_failing_time"`
+	NumFailing      int32                  `json:"num_failing"`
+	Results         map[string]*ResultMemo // map[bastion_id]failing_count
+}
+
+// Transition is the transition function for the Check state machine. Given a
+// proposed change to the current state (a new CheckResult object), update the
+// state for the check associated with the result.
+func (state *State) Transition(result *schema.CheckResult) error {
+	// update failing count.
+	var totalFails int32
+
+	state.Results[result.BastionId] = ResultMemoFromCheckResult(result)
+	for _, rm := range state.Results {
+		totalFails += rm.NumFailing
 	}
 	state.NumFailing = totalFails
 
-	if time.Now().After(state.LastUpdate) {
-		state.LastUpdate = time.Now()
-	}
+	state.LastUpdate = time.Now()
 
 	sFn, ok := StateFnMap[state.Id]
 	if !ok {
-		return nil, fmt.Errorf("Invalid state: %s", StateStrings[state.Id])
+		return fmt.Errorf("Invalid state: %s", StateStrings[state.Id])
 	}
 
 	newSid := sFn(state)
 	if newSid == StateInvalid {
-		return nil, fmt.Errorf("Invalid state transition.")
+		return fmt.Errorf("Invalid state transition.")
 	}
 
 	if newSid != state.Id {
@@ -85,7 +113,7 @@ func transition(state *State, result *schema.CheckResult) (*State, error) {
 	state.Id = newSid
 	state.State = StateStrings[newSid]
 
-	return state, nil
+	return nil
 }
 
 func ok(s *State) StateId {

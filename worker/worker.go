@@ -41,16 +41,30 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 		logger.WithError(err).Error("Error putting CheckResult to dynamodb.")
 	}
 
-	// TODO(greg): manage state transitions
-	/*
-		// state := GetState(result.CheckId)
-		state := &state{}
+	state, err := GetState(w.result.CustomerId, w.result.CheckId)
+	if err != nil {
+		logger.WithError(err).Error("Error getting state.")
+		return nil, err
+	}
 
-		if err := StoreState(transition(state, result)); err != nil {
-			logger.WithError(err).Error("Unable to store state.")
+	latestMemo, ok := state.Results[w.result.BastionId]
+	if ok {
+		// We've seen this bastion before, and we have a newer result so we don't
+		// transition. In any other case, we transition.
+		if latestMemo.LastUpdate > w.result.Timestamp.Millis() {
+			return nil, nil
 		}
-	*/
+	}
 
-	// return map[string]interface{}{"ok": true}, nil
+	if err := state.Transition(w.result); err != nil {
+		logger.WithError(err).Error("Error transitioning state.")
+		return nil, err
+	}
+
+	if err := PutState(state); err != nil {
+		logger.WithError(err).Error("Error storing state.")
+		return nil, err
+	}
+
 	return nil, nil
 }
