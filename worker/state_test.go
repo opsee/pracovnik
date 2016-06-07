@@ -10,12 +10,13 @@ import (
 
 func testMockState(sid stateId, f, n int, t, te time.Time, tw time.Duration) *state {
 	return &state{
-		n:  n,
-		f:  f,
-		te: te,
-		t:  t,
-		id: sid,
-		tw: tw,
+		NumFailing:      n,
+		MinFailingCount: f,
+		TimeEntered:     te,
+		LastUpdate:      t,
+		Id:              sid,
+		State:           stateStrings[sid],
+		MinFailingTime:  tw,
 		fails: map[string]int{
 			"bastion-id": n,
 		},
@@ -44,7 +45,7 @@ func TestOkToOk(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", stateStrings[s.id])
+	assert.Equal(t, "OK", s.State)
 }
 
 func TestOkToWarn(t *testing.T) {
@@ -53,7 +54,7 @@ func TestOkToWarn(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "WARN", stateStrings[s.id])
+	assert.Equal(t, "WARN", s.State)
 }
 
 func TestOkToFailWait(t *testing.T) {
@@ -62,7 +63,7 @@ func TestOkToFailWait(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL_WAIT", stateStrings[s.id])
+	assert.Equal(t, "FAIL_WAIT", s.State)
 }
 
 func TestFailWaitToFailWait(t *testing.T) {
@@ -71,7 +72,7 @@ func TestFailWaitToFailWait(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL_WAIT", stateStrings[s.id])
+	assert.Equal(t, "FAIL_WAIT", s.State)
 }
 
 func TestFailWaitToOk(t *testing.T) {
@@ -80,7 +81,7 @@ func TestFailWaitToOk(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", stateStrings[s.id])
+	assert.Equal(t, "OK", s.State)
 }
 
 func TestFailWaitToFail(t *testing.T) {
@@ -89,7 +90,7 @@ func TestFailWaitToFail(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL", stateStrings[s.id])
+	assert.Equal(t, "FAIL", s.State)
 }
 
 func TestFailWaitToWarn(t *testing.T) {
@@ -98,7 +99,7 @@ func TestFailWaitToWarn(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "WARN", stateStrings[s.id])
+	assert.Equal(t, "WARN", s.State)
 }
 
 func TestPassWaitToPassWait(t *testing.T) {
@@ -107,7 +108,7 @@ func TestPassWaitToPassWait(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "PASS_WAIT", stateStrings[s.id])
+	assert.Equal(t, "PASS_WAIT", s.State)
 }
 
 func TestPassWaitToFail(t *testing.T) {
@@ -116,7 +117,7 @@ func TestPassWaitToFail(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL", stateStrings[s.id])
+	assert.Equal(t, "FAIL", s.State)
 }
 
 func TestPassWaitToWarn(t *testing.T) {
@@ -125,7 +126,7 @@ func TestPassWaitToWarn(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "WARN", stateStrings[s.id])
+	assert.Equal(t, "WARN", s.State)
 }
 
 func TestPassWaitToOk(t *testing.T) {
@@ -134,7 +135,7 @@ func TestPassWaitToOk(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", stateStrings[s.id])
+	assert.Equal(t, "OK", s.State)
 }
 
 func TestFailToFail(t *testing.T) {
@@ -143,7 +144,7 @@ func TestFailToFail(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL", stateStrings[s.id])
+	assert.Equal(t, "FAIL", s.State)
 }
 
 func TestFailToPassWait(t *testing.T) {
@@ -152,7 +153,7 @@ func TestFailToPassWait(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "PASS_WAIT", stateStrings[s.id])
+	assert.Equal(t, "PASS_WAIT", s.State)
 }
 
 func TestWarnToWarn(t *testing.T) {
@@ -161,7 +162,7 @@ func TestWarnToWarn(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "WARN", stateStrings[s.id])
+	assert.Equal(t, "WARN", s.State)
 }
 
 func TestWarnToOk(t *testing.T) {
@@ -170,7 +171,7 @@ func TestWarnToOk(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", stateStrings[s.id])
+	assert.Equal(t, "OK", s.State)
 }
 
 func TestWarnToFailWait(t *testing.T) {
@@ -179,5 +180,5 @@ func TestWarnToFailWait(t *testing.T) {
 
 	s, err := transition(s, r)
 	assert.Nil(t, err)
-	assert.Equal(t, "FAIL_WAIT", stateStrings[s.id])
+	assert.Equal(t, "FAIL_WAIT", s.State)
 }
