@@ -8,6 +8,16 @@ Pracovnik consumes CheckResults from NSQ, manages the state of the Check with wh
 they are associated, and maintains the check state in Postgres and stores CheckResults
 and CheckResponses in DynamoDB.
 
+### Configuration
+
+Environment variables needed:
+
+```
+- PRACOVNIK_MAX_TASKS - Maximum concurrency for the worker
+- PRACOVNIK_LOOKUPD_ADDRESSES - space-delimited list of nsqlookupd addresses
+- PRACOVNIK_POSTGRES_CONN - URL to postgres connection
+```
+
 ### Postgres and Migrations
 
 Pracovnik piggy-backs on Bartnet's DB. Migrations for Pracovnik are in the Bartnet
