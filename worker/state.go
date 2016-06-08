@@ -102,6 +102,10 @@ func callHooks(id StateId, state *State) {
 	}
 }
 
+func (state *State) TimeInState() time.Duration {
+	return state.LastUpdate.Sub(state.TimeEntered)
+}
+
 // Transition is the transition function for the Check state machine. Given a
 // proposed change to the current state (a new CheckResult object), update the
 // state for the check associated with the result.
@@ -128,10 +132,11 @@ func (state *State) Transition(result *schema.CheckResult) error {
 	}
 
 	if newSid != state.Id {
+		// hooks should be called on the state _before_ it has been modified.
+		callHooks(newSid, state)
 		t := time.Now()
 		state.TimeEntered = t
 		state.LastUpdate = t
-		callHooks(newSid, state)
 	}
 	state.Id = newSid
 	state.State = StateStrings[newSid]
@@ -153,14 +158,12 @@ func ok(s *State) StateId {
 }
 
 func failWait(s *State) StateId {
-	dt := s.LastUpdate.Sub(s.TimeEntered)
-
 	switch {
-	case s.NumFailing >= s.MinFailingCount && dt < s.MinFailingTime:
+	case s.NumFailing >= s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
 		return StateFailWait
 	case s.NumFailing == 0:
 		return StateOK
-	case s.NumFailing >= s.MinFailingCount && dt > s.MinFailingTime:
+	case s.NumFailing >= s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
 		return StateFail
 	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount:
 		return StateWarn
@@ -170,16 +173,14 @@ func failWait(s *State) StateId {
 }
 
 func passWait(s *State) StateId {
-	dt := s.LastUpdate.Sub(s.TimeEntered)
-
 	switch {
-	case s.NumFailing < s.MinFailingCount && dt < s.MinFailingTime:
+	case s.NumFailing < s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
 		return StatePassWait
 	case s.NumFailing >= s.MinFailingCount:
 		return StateFail
-	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount && dt > s.MinFailingTime:
+	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
 		return StateWarn
-	case s.NumFailing == 0 && dt > s.MinFailingTime:
+	case s.NumFailing == 0 && s.TimeInState() > s.MinFailingTime:
 		return StateOK
 	}
 
