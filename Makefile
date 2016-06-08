@@ -14,7 +14,7 @@ fmt:
 
 deps:
 	docker-compose up -d
-	docker run --link pracovnik_postgresql:postgres aanand/wait
+	docker run --link $(PROJECT)_postgresql:postgres aanand/wait
 
 migrate:
 	migrate -url $($(shell echo $(PROJECT) | tr a-z A-Z)_POSTGRES_CONN) -path ./migrations up
