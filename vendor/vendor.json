@@ -327,6 +327,18 @@
 			"revisionTime": "2016-02-02T18:50:14Z"
 		},
 		{
+			"checksumSHA1": "K33xdaNbpTxlDZbenJzT9PzTyvM=",
+			"path": "github.com/jmoiron/sqlx",
+			"revision": "398dd5876282499cdfd4cb8ea0f31a672abe9495",
+			"revisionTime": "2016-02-06T22:15:33Z"
+		},
+		{
+			"checksumSHA1": "Sywkpq8/z9Enzy90gjzNk+dhhow=",
+			"path": "github.com/jmoiron/sqlx/reflectx",
+			"revision": "398dd5876282499cdfd4cb8ea0f31a672abe9495",
+			"revisionTime": "2016-02-06T22:15:33Z"
+		},
+		{
 			"checksumSHA1": "HIsIO4+e5awXjNSj/UJzbSePEZQ=",
 			"path": "github.com/kr/pretty",
 			"revision": "add1dbc86daf0f983cd4a48ceb39deb95c729b67",
@@ -337,6 +349,18 @@
 			"path": "github.com/kr/text",
 			"revision": "bb797dc4fb8320488f47bf11de07a733d7233e1f",
 			"revisionTime": "2015-09-05T22:45:08Z"
+		},
+		{
+			"checksumSHA1": "Mt2HF+iR18jEOWEh0lRJVMseZ8I=",
+			"path": "github.com/lib/pq",
+			"revision": "165a3529e799da61ab10faed1fabff3662d6193f",
+			"revisionTime": "2016-03-02T08:17:19Z"
+		},
+		{
+			"checksumSHA1": "xppHi82MLqVx1eyQmbhTesAEjx8=",
+			"path": "github.com/lib/pq/oid",
+			"revision": "165a3529e799da61ab10faed1fabff3662d6193f",
+			"revisionTime": "2016-03-02T08:17:19Z"
 		},
 		{
 			"checksumSHA1": "eqs9e0Fw1wlUZCj/ZtrSwnPsJ54=",

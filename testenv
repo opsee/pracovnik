@@ -1,0 +1,3 @@
+PRACOVNIK_POSTGRES_CONN=postgres://postgres:postgres@postgresql/pracovnik_test?sslmode=disable
+PRACOVNIK_NSQLOOKUPD_ADDRS=http://lookupd:4161
+PRACOVNIK_MAX_TASKS=1

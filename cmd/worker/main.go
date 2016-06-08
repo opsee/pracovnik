@@ -39,7 +39,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to create consumer.")
 	}
 
-	db, err := sqlx.Open("postgres", viper.GetString("POSTGRES_CONN"))
+	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
 	if err != nil {
 		log.WithError(err).Fatal("Cannot connect to database.")
 	}
