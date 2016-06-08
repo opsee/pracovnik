@@ -1,67 +1,50 @@
 package worker
 
 import (
+	"database/sql"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/opsee/basic/schema"
 )
-
-var (
-	store *StateStore
-)
-
-type StateStore struct {
-}
-
-func GetCheck(customerId, checkId string) (*schema.Check, error) {
-	return store.GetCheck(customerId, checkId)
-}
-
-func GetState(customerId, checkId string) (*State, error) {
-	return store.GetState(customerId, checkId)
-}
-
-func PutState(state *State) error {
-	return store.PutState(state)
-}
-
-func (store *StateStore) GetCheck(customerId, checkId string) (*schema.Check, error) {
-	return nil, nil
-}
 
 // GetState creates a State object populated by the check's settings and
 // by the current state if it exists. If it the state is unknown, then it
 // assumes a present state of OK.
-func (store *StateStore) GetState(customerId, checkId string) (*State, error) {
-	// Get the check so that we can get MinFailingCount and MinFailingTime
-	// Return an error if the check doesn't exist
-	check, err := store.GetCheck(customerId, checkId)
-	if err != nil {
+func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
+	state := &State{}
+	err := sqlx.Get(q, state, "SELECT cs.id, cs.customer_id, cs.check_id, cs.state, cs.time_entered, cs.last_update, c.min_failing_count, c.min_failing_time, cs.num_failing FROM check_state AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
+	if err != sql.ErrNoRows {
 		return nil, err
 	}
 
-	state, err := store.GetState(customerId, checkId)
-	if err != nil {
-		return nil, err
+	if err == sql.ErrNoRows {
+		// Get the check so that we can get MinFailingCount and MinFailingTime
+		// Return an error if the check doesn't exist
+		// check, err := store.GetCheck(customerId, checkId)
+		check := &schema.Check{}
+		err := sqlx.Get(q, check, "SELECT id, customer_id, min_failing_count, min_failing_time FROM checks WHERE customer_id=? AND check_id=?", customerId, checkId)
+		if err != nil {
+			return nil, err
+		}
+
+		state = &State{
+			CheckId:         checkId,
+			CustomerId:      customerId,
+			Id:              StateOK,
+			State:           StateStrings[StateOK],
+			TimeEntered:     time.Now(),
+			LastUpdate:      time.Now(),
+			MinFailingCount: check.MinFailingCount,
+			MinFailingTime:  time.Duration(check.MinFailingTime) * time.Second,
+			NumFailing:      0,
+		}
 	}
 
-	if state != nil {
-		return state, nil
-	}
-
-	return &State{
-		CheckId:         checkId,
-		CustomerId:      customerId,
-		Id:              StateOK,
-		State:           StateStrings[StateOK],
-		TimeEntered:     time.Now(),
-		LastUpdate:      time.Now(),
-		MinFailingCount: check.MinFailingCount,
-		MinFailingTime:  time.Duration(check.MinFailingTime) * time.Second,
-		NumFailing:      0,
-	}, nil
+	return state, nil
 }
 
-func (store *StateStore) PutState(state *State) error {
-	return nil
+func PutState(q sqlx.Ext, state *State) error {
+	_, err := sqlx.NamedExec(q, "INSERT INTO check_state (check_id, customer_id, state_id, state_name, time_entered, last_update) VALUES (:check_id, :customer_id, :state_id, :state_name, :time_entered, :last_update, :num_failing) ON CONFLICT UPDATE", state)
+	return err
 }

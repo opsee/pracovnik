@@ -7,6 +7,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/nsqio/go-nsq"
 	"github.com/opsee/basic/schema"
 	"github.com/opsee/pracovnik/worker"
@@ -37,6 +39,11 @@ func main() {
 		log.WithError(err).Fatal("Failed to create consumer.")
 	}
 
+	db, err := sqlx.Open("postgres", viper.GetString("POSTGRES_CONN"))
+	if err != nil {
+		log.WithError(err).Fatal("Cannot connect to database.")
+	}
+
 	consumer.AddHandler(func(msg *nsq.Message) error {
 		result := &schema.CheckResult{}
 		if err := proto.Unmarshal(msg.Body, result); err != nil {
@@ -44,7 +51,7 @@ func main() {
 			return err
 		}
 
-		task := worker.NewCheckWorker(result)
+		task := worker.NewCheckWorker(db, result)
 		_, err = task.Execute()
 		if err != nil {
 			return err
