@@ -26,6 +26,8 @@ var (
 		"FAIL",
 		"WARN",
 	}
+
+	transitionHooks = map[StateId][]TransitionHook{}
 )
 
 func init() {
@@ -38,7 +40,9 @@ func init() {
 
 type StateId int
 
-type StateFn func(*State) StateId
+type StateFn func(state *State) StateId
+
+type TransitionHook func(newStateId StateId, state *State)
 
 type ResultMemo struct {
 	CheckId       string `json:"check_id"`
@@ -80,6 +84,24 @@ type State struct {
 	Results         map[string]*ResultMemo // map[bastion_id]failing_count
 }
 
+func AddHook(id StateId, hook TransitionHook) {
+	_, ok := transitionHooks[id]
+	if !ok {
+		transitionHooks[id] = []TransitionHook{}
+	}
+
+	transitionHooks[id] = append(transitionHooks[id], hook)
+}
+
+func callHooks(id StateId, state *State) {
+	hooks, ok := transitionHooks[id]
+	if ok {
+		for _, hook := range hooks {
+			hook(id, state)
+		}
+	}
+}
+
 // Transition is the transition function for the Check state machine. Given a
 // proposed change to the current state (a new CheckResult object), update the
 // state for the check associated with the result.
@@ -109,6 +131,7 @@ func (state *State) Transition(result *schema.CheckResult) error {
 		t := time.Now()
 		state.TimeEntered = t
 		state.LastUpdate = t
+		callHooks(newSid, state)
 	}
 	state.Id = newSid
 	state.State = StateStrings[newSid]
