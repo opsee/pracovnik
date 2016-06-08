@@ -65,15 +65,35 @@ func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, err
 
 	results := map[string]*schema.CheckResult{}
 	for _, item := range resp.Items {
-		bid := strings.Split(aws.StringValue(item["result_id"].S), ":")
-		bastionId := bid[0]
+		resultId := item["result_id"]
+		splitResultId := strings.Split(aws.StringValue(resultId.S), ":")
+		resultBastionId := splitResultId[0]
 
-		result := &schema.CheckResult{}
-		if err := dynamodbattribute.UnmarshalMap(item, result); err != nil {
+		bastionResult := &schema.CheckResult{}
+		if err := dynamodbattribute.UnmarshalMap(item, bastionResult); err != nil {
 			return nil, err
 		}
 
-		results[bastionId] = result
+		params := &dynamodb.QueryInput{
+			TableName:              aws.String(CheckResponseTableName),
+			KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND result_id = %s", checkId, resultId)),
+			Select:                 aws.String("ALL_ATTRIBUTES"),
+		}
+		grResp, err := dynaClient.Query(params)
+		if err != nil {
+			return nil, err
+		}
+
+		responses := make([]*schema.CheckResponse, 0, len(grResp.Items))
+		for i, response := range grResp.Items {
+			checkResponse := &schema.CheckResponse{}
+			if err := dynamodbattribute.UnmarshalMap(response, checkResponse); err != nil {
+				return nil, err
+			}
+			responses[i] = checkResponse
+		}
+		bastionResult.Responses = responses
+		results[resultBastionId] = bastionResult
 	}
 
 	return results, nil
