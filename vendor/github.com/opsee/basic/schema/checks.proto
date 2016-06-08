@@ -114,7 +114,7 @@ message HttpResponse {
 
 message CheckResponse {
 	Target target = 1;
-	opsee.types.Any response = 2;
+	opsee.types.Any response = 2 [(gogoproto.moretags) = "dynamodbav:\"-\""];
 	string error = 3;
 	bool passing = 4;
 	oneof reply {
