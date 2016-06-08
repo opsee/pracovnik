@@ -393,10 +393,11 @@
 			"revisionTime": "2016-02-21T17:07:15Z"
 		},
 		{
-			"checksumSHA1": "fzUAQIH9mDShBld6nnsub5435wo=",
+			"checksumSHA1": "+dFLR/djc0sFyMVl72u/qB3qa90=",
+			"origin": "github.com/opsee/pracovnik/vendor/github.com/opsee/basic/schema",
 			"path": "github.com/opsee/basic/schema",
-			"revision": "2f0738c86e84f45d45fef9948aad80edd9aa31da",
-			"revisionTime": "2016-06-08T18:01:51Z"
+			"revision": "8f3cf850a4ea0a172450345bcddeab36c79a81c5",
+			"revisionTime": "2016-06-08T21:10:30Z"
 		},
 		{
 			"checksumSHA1": "FkjxadUmA3jQE9gNzDheJ5axvyw=",

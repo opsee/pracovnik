@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/opsee/basic/schema"
+	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 )
 
 const (
@@ -84,9 +85,6 @@ func PutResult(result *schema.CheckResult) error {
 		item      map[string]*dynamodb.AttributeValue
 	)
 
-	responses := result.Responses
-	result.Responses = nil
-
 	// If we choose to store replies/responses separately in dynamodb, then
 	// we can just add (gogoproto.moretags) = "dynamodbav:\"-\""
 	// That will cause dyanmodbattribute.MarshalMap() to ignore them.
@@ -116,7 +114,21 @@ func PutResult(result *schema.CheckResult) error {
 	// TODO(greg): parallelize these while maintaining the contract that we
 	// return an error if we have a problem writing a response to dynamodb so
 	// that we requeue and retry.
-	for _, r := range responses {
+	for _, r := range result.Responses {
+		if r.Reply == nil {
+			any, err := opsee_types.UnmarshalAny(r.Response)
+			if err != nil {
+				return err
+			}
+
+			switch reply := any.(type) {
+			case *schema.HttpResponse:
+				r.Reply = &schema.CheckResponse_HttpResponse{reply}
+			case *schema.CloudWatchResponse:
+				r.Reply = &schema.CheckResponse_CloudwatchResponse{reply}
+			}
+		}
+
 		item, err := dynamodbattribute.MarshalMap(r)
 		if err != nil {
 			return err
