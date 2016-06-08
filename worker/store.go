@@ -38,7 +38,18 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 			MinFailingCount: check.MinFailingCount,
 			MinFailingTime:  time.Duration(check.MinFailingTime) * time.Second,
 			NumFailing:      0,
+			Results:         map[string]*ResultMemo{},
 		}
+	}
+
+	memos := []*ResultMemo{}
+	err = sqlx.Select(q, memos, "SELECT * FROM check_state_memos WHERE customer_id=? AND check_id=?", customerId, checkId)
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	for _, memo := range memos {
+		state.Results[memo.BastionId] = memo
 	}
 
 	return state, nil
