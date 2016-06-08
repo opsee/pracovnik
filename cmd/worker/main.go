@@ -60,6 +60,18 @@ func main() {
 		return nil
 	})
 
+	worker.AddHook(worker.StateOK, func(id worker.StateId, state *worker.State) {
+		logger := log.WithFields(log.Fields{
+			"customer_id":       state.CustomerId,
+			"check_id":          state.CheckId,
+			"min_failing_count": state.MinFailingCount,
+			"min_failing_time":  state.MinFailingTime,
+			"failing_count":     state.NumFailing,
+			"failing_time_s":    state.TimeInState().Seconds(),
+		})
+		logger.Infof("check moving from state %s -> %s", state.State, worker.StateStrings[id])
+	})
+
 	if err := consumer.Start(); err != nil {
 		log.WithError(err).Fatal("Failed to start consumer.")
 	}
