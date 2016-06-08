@@ -3,9 +3,7 @@ FROM alpine:3.3
 RUN apk add --update bash ca-certificates curl
 RUN mkdir -p /opt/bin && \
 		curl -Lo /opt/bin/s3kms https://s3-us-west-2.amazonaws.com/opsee-releases/go/vinz-clortho/s3kms-linux-amd64 && \
-    chmod 755 /opt/bin/s3kms && \
-    curl -Lo /opt/bin/migrate https://s3-us-west-2.amazonaws.com/opsee-releases/go/migrate/migrate-linux-amd64 && \
-    chmod 755 /opt/bin/migrate
+    chmod 755 /opt/bin/s3kms
 
 ENV PRACOVNIK_POSTGRES_CONN ""
 ENV PRACOVNIK_NSQLOOKUPD_ADDRS ""
