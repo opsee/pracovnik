@@ -17,7 +17,7 @@ deps:
 	docker run --link pracovnik_postgresql:postgres aanand/wait
 
 migrate:
-	migrate -url $(PRACOVNIK_POSTGRES_CONN) -path ./migrations up
+	migrate -url $($(shell echo $(PROJECT) | tr a-z A-Z)_POSTGRES_CONN) -path ./migrations up
 
 build: deps $(APPENV)
 	docker run \
