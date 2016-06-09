@@ -44,4 +44,4 @@ run: build $(APPENV)
 push: build $(APPENV)
 	docker push quay.io/opsee/$(PROJECT):$(GITCOMMIT)
 
-.PHONY: build run migrate all
+.PHONY: build run migrate all push
