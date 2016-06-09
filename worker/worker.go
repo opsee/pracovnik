@@ -15,6 +15,7 @@ var (
 
 type CheckWorker struct {
 	db      *sqlx.DB
+	rStore  ResultStore
 	context context.Context
 	result  *schema.CheckResult
 }
@@ -35,9 +36,10 @@ func commit(logger log.FieldLogger, tx *sqlx.Tx) error {
 	return err
 }
 
-func NewCheckWorker(db *sqlx.DB, result *schema.CheckResult) *CheckWorker {
+func NewCheckWorker(db *sqlx.DB, rStore ResultStore, result *schema.CheckResult) *CheckWorker {
 	return &CheckWorker{
 		db:      db,
+		rStore:  rStore,
 		context: context.Background(),
 		result:  result,
 	}
@@ -62,7 +64,7 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 
 	logger.Debug("Handling check result: ", w.result)
 
-	if err := PutResult(w.result); err != nil {
+	if err := w.rStore.PutResult(w.result); err != nil {
 		logger.WithError(err).Error("Error putting CheckResult to dynamodb.")
 		rollback(logger, tx)
 		return nil, err

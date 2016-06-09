@@ -51,7 +51,8 @@ func main() {
 			return err
 		}
 
-		task := worker.NewCheckWorker(db, result)
+		dynamo := worker.DynamoStore{dynamodb.New(session.New())}
+		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()
 		if err != nil {
 			return err

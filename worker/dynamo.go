@@ -17,11 +17,6 @@ const (
 	CheckResponseTableName = "check_responses"
 )
 
-var (
-	// Why is this required?
-	dynaClient = dynamodb.New(session.New())
-)
-
 /*
 message CheckResult {
 	string check_id = 1;
@@ -42,7 +37,11 @@ message CheckResult {
   Sort Key: result_id = <bastion_id>:<timestamp>
 */
 
-func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, error) {
+type DynamoStore struct {
+	DynaClient *dynamodb.DynamoDB
+}
+
+func (s *DynamoStore) GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, error) {
 	checkId := result.CheckId
 	customerId := result.CustomerId
 	bastionId := result.BastionId
@@ -58,7 +57,7 @@ func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, err
 		Limit:                  aws.Int64(1),
 	}
 
-	resp, err := dynaClient.Query(params)
+	resp, err := s.DynaClient.Query(params)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, err
 			KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND result_id = %s", checkId, resultId)),
 			Select:                 aws.String("ALL_ATTRIBUTES"),
 		}
-		grResp, err := dynaClient.Query(params)
+		grResp, err := s.DynaClient.Query(params)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +98,7 @@ func GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, err
 	return results, nil
 }
 
-func PutResult(result *schema.CheckResult) error {
+func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 	var (
 		bastionId string
 		item      map[string]*dynamodb.AttributeValue
@@ -160,7 +159,7 @@ func PutResult(result *schema.CheckResult) error {
 			TableName: aws.String(CheckResponseTableName),
 			Item:      item,
 		}
-		_, err = dynaClient.PutItem(params)
+		_, err = s.DynaClient.PutItem(params)
 		if err != nil {
 			return err
 		}
@@ -171,7 +170,7 @@ func PutResult(result *schema.CheckResult) error {
 		Item:      item,
 	}
 
-	_, err = dynaClient.PutItem(params)
+	_, err = s.DynaClient.PutItem(params)
 	if err != nil {
 		fmt.Println("problem item: ", item)
 		return err
