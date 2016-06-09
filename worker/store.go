@@ -72,3 +72,13 @@ func PutMemo(q sqlx.Ext, memo *ResultMemo) error {
 
 	return nil
 }
+
+func GetMemo(q sqlx.Ext, checkId, bastionId string) (*ResultMemo, err) {
+	memo := *ResultMemo{}
+	err := sqlx.Select(q, memo, "SELECT * FROM check_state_memos WHERE check_id=? AND bastion_id=?", customerId, bastionId)
+	if err != nil {
+		return nil, err
+	}
+
+	return memo, nil
+}
