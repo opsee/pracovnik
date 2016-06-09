@@ -171,7 +171,6 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 
 	_, err = s.DynaClient.PutItem(params)
 	if err != nil {
-		fmt.Println("problem item: ", item)
 		return err
 	}
 
