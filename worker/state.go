@@ -78,10 +78,10 @@ type State struct {
 	State           string                 `json:"state_name"`
 	TimeEntered     time.Time              `json:"time_entered"`
 	LastUpdated     time.Time              `json:"last_updated"`
-	MinFailingCount int32                  `json:"min_failing_count"`
-	MinFailingTime  time.Duration          `json:"min_failing_time"`
-	FailingCount    int32                  `json:"failing_count"`
-	Results         map[string]*ResultMemo // map[bastion_id]failing_count
+	MinFailingCount int32                  `json:"-"`
+	MinFailingTime  time.Duration          `json:"-"`
+	FailingCount    int32                  `json:"-"`
+	Results         map[string]*ResultMemo `json:"-"` // map[bastion_id]failing_count
 }
 
 func AddHook(id StateId, hook TransitionHook) {
