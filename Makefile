@@ -41,4 +41,7 @@ run: build $(APPENV)
 		--rm \
 		quay.io/opsee/$(PROJECT):$(GITCOMMIT)
 
+push: build $(APPENV)
+	docker push quay.io/opsee/$(PROJECT):$(GITCOMMIT)
+
 .PHONY: build run migrate all

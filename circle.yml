@@ -10,3 +10,9 @@ dependencies:
 test:
   override:
     - make
+deployment:
+  production:
+    branch: master
+    owner: opsee
+    commands:
+      - make push
