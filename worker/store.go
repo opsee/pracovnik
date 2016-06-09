@@ -13,7 +13,7 @@ import (
 // assumes a present state of OK.
 func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
-	err := sqlx.Get(q, state, "SELECT cs.id, cs.customer_id, cs.check_id, cs.state, cs.time_entered, cs.last_update, c.min_failing_count, c.min_failing_time, cs.num_failing FROM check_states AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
+	err := sqlx.Get(q, state, "SELECT cs.id, cs.customer_id, cs.check_id, cs.state, cs.time_entered, cs.last_updated, c.min_failing_count, c.min_failing_time, cs.failing_count FROM check_states AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -34,10 +34,10 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 			Id:              StateOK,
 			State:           StateStrings[StateOK],
 			TimeEntered:     time.Now(),
-			LastUpdate:      time.Now(),
+			LastUpdated:     time.Now(),
 			MinFailingCount: check.MinFailingCount,
 			MinFailingTime:  time.Duration(check.MinFailingTime) * time.Second,
-			NumFailing:      0,
+			FailingCount:    0,
 			Results:         map[string]*ResultMemo{},
 		}
 	}
@@ -56,6 +56,6 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 }
 
 func PutState(q sqlx.Ext, state *State) error {
-	_, err := sqlx.NamedExec(q, "INSERT INTO check_states (check_id, customer_id, state_id, state_name, time_entered, last_update) VALUES (:check_id, :customer_id, :state_id, :state_name, :time_entered, :last_update, :num_failing) ON CONFLICT UPDATE", state)
+	_, err := sqlx.NamedExec(q, "INSERT INTO check_states (check_id, customer_id, state_id, state_name, time_entered, last_updated) VALUES (:check_id, :customer_id, :state_id, :state_name, :time_entered, :last_updated, :failing_count) ON CONFLICT UPDATE", state)
 	return err
 }

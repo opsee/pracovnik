@@ -48,11 +48,11 @@ type ResultMemo struct {
 	CheckId       string `json:"check_id"`
 	CustomerId    string `json:"customer_id"`
 	BastionId     string `json:"bastion_id"`
-	NumFailing    int32  `json:"num_failing"`
+	FailingCount  int32  `json:"failing_count"`
 	ResponseCount int    `json:"response_count"`
 
-	// LastUpdate is result.Timestamp.Millis()
-	LastUpdate int64 `json:"last_update"`
+	// LastUpdated is result.Timestamp.Millis()
+	LastUpdated int64 `json:"last_updated"`
 }
 
 func ResultMemoFromCheckResult(result *schema.CheckResult) *ResultMemo {
@@ -65,9 +65,9 @@ func ResultMemoFromCheckResult(result *schema.CheckResult) *ResultMemo {
 		CheckId:       result.CheckId,
 		CustomerId:    result.CustomerId,
 		BastionId:     bastionId,
-		NumFailing:    int32(result.FailingCount()),
+		FailingCount:  int32(result.FailingCount()),
 		ResponseCount: len(result.Responses),
-		LastUpdate:    result.Timestamp.Millis(),
+		LastUpdated:   result.Timestamp.Millis(),
 	}
 }
 
@@ -77,10 +77,10 @@ type State struct {
 	Id              StateId                `json:"state_id"`
 	State           string                 `json:"state_name"`
 	TimeEntered     time.Time              `json:"time_entered"`
-	LastUpdate      time.Time              `json:"last_update"`
+	LastUpdated     time.Time              `json:"last_updated"`
 	MinFailingCount int32                  `json:"min_failing_count"`
 	MinFailingTime  time.Duration          `json:"min_failing_time"`
-	NumFailing      int32                  `json:"num_failing"`
+	FailingCount    int32                  `json:"failing_count"`
 	Results         map[string]*ResultMemo // map[bastion_id]failing_count
 }
 
@@ -103,7 +103,7 @@ func callHooks(id StateId, state *State) {
 }
 
 func (state *State) TimeInState() time.Duration {
-	return state.LastUpdate.Sub(state.TimeEntered)
+	return state.LastUpdated.Sub(state.TimeEntered)
 }
 
 // Transition is the transition function for the Check state machine. Given a
@@ -115,11 +115,11 @@ func (state *State) Transition(result *schema.CheckResult) error {
 
 	state.Results[result.BastionId] = ResultMemoFromCheckResult(result)
 	for _, rm := range state.Results {
-		totalFails += rm.NumFailing
+		totalFails += rm.FailingCount
 	}
-	state.NumFailing = totalFails
+	state.FailingCount = totalFails
 
-	state.LastUpdate = time.Now()
+	state.LastUpdated = time.Now()
 
 	sFn, ok := StateFnMap[state.Id]
 	if !ok {
@@ -136,7 +136,7 @@ func (state *State) Transition(result *schema.CheckResult) error {
 		callHooks(newSid, state)
 		t := time.Now()
 		state.TimeEntered = t
-		state.LastUpdate = t
+		state.LastUpdated = t
 	}
 	state.Id = newSid
 	state.State = StateStrings[newSid]
@@ -146,11 +146,11 @@ func (state *State) Transition(result *schema.CheckResult) error {
 
 func ok(s *State) StateId {
 	switch {
-	case s.NumFailing == 0:
+	case s.FailingCount == 0:
 		return StateOK
-	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount:
+	case 0 < s.FailingCount && s.FailingCount < s.MinFailingCount:
 		return StateWarn
-	case s.NumFailing >= s.MinFailingCount:
+	case s.FailingCount >= s.MinFailingCount:
 		return StateFailWait
 	}
 
@@ -159,13 +159,13 @@ func ok(s *State) StateId {
 
 func failWait(s *State) StateId {
 	switch {
-	case s.NumFailing >= s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
+	case s.FailingCount >= s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
 		return StateFailWait
-	case s.NumFailing == 0:
+	case s.FailingCount == 0:
 		return StateOK
-	case s.NumFailing >= s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
+	case s.FailingCount >= s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
 		return StateFail
-	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount:
+	case 0 < s.FailingCount && s.FailingCount < s.MinFailingCount:
 		return StateWarn
 	}
 
@@ -174,13 +174,13 @@ func failWait(s *State) StateId {
 
 func passWait(s *State) StateId {
 	switch {
-	case s.NumFailing < s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
+	case s.FailingCount < s.MinFailingCount && s.TimeInState() < s.MinFailingTime:
 		return StatePassWait
-	case s.NumFailing >= s.MinFailingCount:
+	case s.FailingCount >= s.MinFailingCount:
 		return StateFail
-	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
+	case 0 < s.FailingCount && s.FailingCount < s.MinFailingCount && s.TimeInState() > s.MinFailingTime:
 		return StateWarn
-	case s.NumFailing == 0 && s.TimeInState() > s.MinFailingTime:
+	case s.FailingCount == 0 && s.TimeInState() > s.MinFailingTime:
 		return StateOK
 	}
 
@@ -189,9 +189,9 @@ func passWait(s *State) StateId {
 
 func fail(s *State) StateId {
 	switch {
-	case s.NumFailing >= s.MinFailingCount:
+	case s.FailingCount >= s.MinFailingCount:
 		return StateFail
-	case s.NumFailing < s.MinFailingCount:
+	case s.FailingCount < s.MinFailingCount:
 		return StatePassWait
 	}
 
@@ -200,11 +200,11 @@ func fail(s *State) StateId {
 
 func warn(s *State) StateId {
 	switch {
-	case 0 < s.NumFailing && s.NumFailing < s.MinFailingCount:
+	case 0 < s.FailingCount && s.FailingCount < s.MinFailingCount:
 		return StateWarn
-	case s.NumFailing == 0:
+	case s.FailingCount == 0:
 		return StateOK
-	case s.NumFailing >= s.MinFailingCount:
+	case s.FailingCount >= s.MinFailingCount:
 		return StateFailWait
 	}
 

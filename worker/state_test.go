@@ -11,18 +11,18 @@ import (
 
 func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *State {
 	rm := &ResultMemo{
-		BastionId:  "bastion-id",
-		CustomerId: "customer-id",
-		CheckId:    "check-id",
-		NumFailing: int32(n),
-		LastUpdate: te.UTC().Unix() * 1000,
+		BastionId:    "bastion-id",
+		CustomerId:   "customer-id",
+		CheckId:      "check-id",
+		FailingCount: int32(n),
+		LastUpdated:  te.UTC().Unix() * 1000,
 	}
 
 	return &State{
-		NumFailing:      int32(n),
+		FailingCount:    int32(n),
 		MinFailingCount: int32(f),
 		TimeEntered:     te,
-		LastUpdate:      t,
+		LastUpdated:     t,
 		Id:              sid,
 		State:           StateStrings[sid],
 		MinFailingTime:  tw,

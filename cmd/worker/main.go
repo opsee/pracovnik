@@ -66,7 +66,7 @@ func main() {
 			"check_id":          state.CheckId,
 			"min_failing_count": state.MinFailingCount,
 			"min_failing_time":  state.MinFailingTime,
-			"failing_count":     state.NumFailing,
+			"failing_count":     state.FailingCount,
 			"failing_time_s":    state.TimeInState().Seconds(),
 		})
 		logger.Infof("check moving from state %s -> %s", state.State, worker.StateStrings[id])

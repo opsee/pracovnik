@@ -79,7 +79,7 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 	if ok {
 		// We've seen this bastion before, and we have a newer result so we don't
 		// transition. In any other case, we transition.
-		if latestMemo.LastUpdate > w.result.Timestamp.Millis() {
+		if latestMemo.LastUpdated > w.result.Timestamp.Millis() {
 			commit(logger, tx)
 			return nil, nil
 		}
