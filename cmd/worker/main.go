@@ -6,6 +6,8 @@ import (
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -51,7 +53,7 @@ func main() {
 			return err
 		}
 
-		dynamo := worker.DynamoStore{dynamodb.New(session.New())}
+		dynamo := &worker.DynamoStore{dynamodb.New(session.New())}
 		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()
 		if err != nil {
