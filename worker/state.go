@@ -114,8 +114,8 @@ func (state *State) Transition(result *schema.CheckResult) error {
 	var totalFails int32
 
 	state.Results[result.BastionId] = ResultMemoFromCheckResult(result)
-	for _, rm := range state.Results {
-		totalFails += rm.FailingCount
+	for _, memo := range state.Results {
+		totalFails += memo.FailingCount
 	}
 	state.FailingCount = totalFails
 
