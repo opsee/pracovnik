@@ -14,7 +14,7 @@ import (
 func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
 	err := sqlx.Get(q, state, "SELECT cs.id, cs.customer_id, cs.check_id, cs.state, cs.time_entered, cs.last_update, c.min_failing_count, c.min_failing_time, cs.num_failing FROM check_state AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
-	if err != sql.ErrNoRows {
+	if err != nil && != sql.ErrNoRows {
 		return nil, err
 	}
 
@@ -44,7 +44,7 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 
 	memos := []*ResultMemo{}
 	err = sqlx.Select(q, memos, "SELECT * FROM check_state_memos WHERE customer_id=? AND check_id=?", customerId, checkId)
-	if err != sql.ErrNoRows {
+	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 
