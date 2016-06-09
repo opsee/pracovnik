@@ -91,6 +91,14 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 		return nil, err
 	}
 
+	// This is weird here, but there's not a lot we can really do about it.
+	// TODO(greg): this should all be refactored a bit to be less meh.
+	memo := state.Results[w.result.BastionId]
+	if err := PutMemo(tx, memo); err != nil {
+		rollback(logger, tx)
+		return nil, err
+	}
+
 	if err := PutState(tx, state); err != nil {
 		logger.WithError(err).Error("Error storing state.")
 		rollback(logger, tx)
