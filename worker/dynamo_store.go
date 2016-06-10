@@ -133,7 +133,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 	// return an error if we have a problem writing a response to dynamodb so
 	// that we requeue and retry.
 	for _, r := range result.Responses {
-		if r.Reply == nil {
+		if r.Reply == nil && r.Response != nil {
 			any, err := opsee_types.UnmarshalAny(r.Response)
 			if err != nil {
 				return err

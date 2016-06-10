@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"time"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
 	"github.com/opsee/basic/schema"
@@ -79,9 +81,10 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 
 	latestMemo, ok := state.Results[w.result.BastionId]
 	if ok {
+		resultTimestamp := time.Unix(w.result.Timestamp.Seconds, int64(w.result.Timestamp.Nanos))
 		// We've seen this bastion before, and we have a newer result so we don't
 		// transition. In any other case, we transition.
-		if latestMemo.LastUpdated > w.result.Timestamp.Millis() {
+		if latestMemo.LastUpdated.After(resultTimestamp) {
 			commit(logger, tx)
 			return nil, nil
 		}
@@ -97,6 +100,7 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 	// TODO(greg): this should all be refactored a bit to be less meh.
 	memo := state.Results[w.result.BastionId]
 	if err := PutMemo(tx, memo); err != nil {
+		logger.WithError(err).Errorf("Error storing memo: %q", memo)
 		rollback(logger, tx)
 		return nil, err
 	}

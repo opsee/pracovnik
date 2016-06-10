@@ -147,6 +147,12 @@
 			"revisionTime": "2015-08-14T09:43:33Z"
 		},
 		{
+			"checksumSHA1": "Fa/Hw0ByZgcIDU5iG+Jt0MdeYYg=",
+			"path": "github.com/coreos/etcd/client",
+			"revision": "247103c40b8b98b628f42c93a1ab81f1585442a4",
+			"revisionTime": "2016-06-10T18:17:59Z"
+		},
+		{
 			"checksumSHA1": "5rPfda8jFccr3A6heL+JAmi9K9g=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d",

@@ -13,7 +13,7 @@ import (
 // assumes a present state of OK.
 func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
-	err := sqlx.Get(q, state, "SELECT cs.state_id, cs.customer_id, cs.check_id, cs.state_name, cs.time_entered, cs.last_updated, c.min_failing_count, c.min_failing_time, cs.failing_count FROM check_states AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
+	err := sqlx.Get(q, state, "SELECT states.state_id, states.customer_id, states.check_id, states.state_name, states.time_entered, states.last_updated, checks.min_failing_count, checks.min_failing_time, states.failing_count FROM check_states AS states JOIN checks ON (checks.id = states.check_id) WHERE states.customer_id = $1 AND checks.id = $2", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 		// Return an error if the check doesn't exist
 		// check, err := store.GetCheck(customerId, checkId)
 		check := &schema.Check{}
-		err := sqlx.Get(q, check, "SELECT id, customer_id, min_failing_count, min_failing_time FROM checks WHERE customer_id=? AND check_id=?", customerId, checkId)
+		err := sqlx.Get(q, check, "SELECT id, customer_id, min_failing_count, min_failing_time FROM checks WHERE customer_id = $1 AND id = $2", customerId, checkId)
 		if err != nil {
 			return nil, err
 		}
@@ -38,12 +38,13 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 			MinFailingCount: check.MinFailingCount,
 			MinFailingTime:  time.Duration(check.MinFailingTime) * time.Second,
 			FailingCount:    0,
-			Results:         map[string]*ResultMemo{},
 		}
 	}
+	state.Results = map[string]*ResultMemo{}
+	state.MinFailingTime = state.MinFailingTime * time.Second
 
 	memos := []*ResultMemo{}
-	err = sqlx.Select(q, memos, "SELECT * FROM check_state_memos WHERE customer_id=? AND check_id=?", customerId, checkId)
+	err = sqlx.Select(q, &memos, "SELECT * FROM check_state_memos WHERE customer_id = $1 AND check_id = $2", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 }
 
 func PutState(q sqlx.Ext, state *State) error {
-	_, err := sqlx.NamedExec(q, "INSERT INTO check_states (check_id, customer_id, state_id, state_name, time_entered, last_updated) VALUES (:check_id, :customer_id, :state_id, :state_name, :time_entered, :last_updated, :failing_count) ON CONFLICT UPDATE", state)
+	_, err := sqlx.NamedExec(q, "INSERT INTO check_states (check_id, customer_id, state_id, state_name, time_entered, last_updated, failing_count, response_count) VALUES (:check_id, :customer_id, :state_id, :state_name, :time_entered, :last_updated, :failing_count, :response_count) ON CONFLICT (check_id) DO UPDATE SET state_id = :state_id, state_name = :state_name, time_entered = :time_entered, last_updated = :last_updated, failing_count = :failing_count, response_count = :response_count", state)
 	if err != nil {
 		return err
 	}
@@ -65,7 +66,7 @@ func PutState(q sqlx.Ext, state *State) error {
 }
 
 func PutMemo(q sqlx.Ext, memo *ResultMemo) error {
-	_, err := sqlx.NamedExec(q, "INSERT INTO check_state_memos (check_id, customer_id, bastion_id, failing_count, response_count, last_updated) VALUES (:check_id, :customer_id, :bastion_id, :failing_count, :response_count, :last_updated) ON CONFLICT UPDATE", memo)
+	_, err := sqlx.NamedExec(q, "INSERT INTO check_state_memos (check_id, customer_id, bastion_id, failing_count, response_count, last_updated) VALUES (:check_id, :customer_id, :bastion_id, :failing_count, :response_count, :last_updated) ON CONFLICT (check_id) DO UPDATE SET failing_count = :failing_count, response_count = :response_count, last_updated = :last_updated", memo)
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func PutMemo(q sqlx.Ext, memo *ResultMemo) error {
 
 func GetMemo(q sqlx.Ext, checkId, bastionId string) (*ResultMemo, error) {
 	memo := &ResultMemo{}
-	err := sqlx.Select(q, memo, "SELECT * FROM check_state_memos WHERE check_id=? AND bastion_id=?", checkId, bastionId)
+	err := sqlx.Select(q, memo, "SELECT * FROM check_state_memos WHERE check_id = ? AND bastion_id = ?", checkId, bastionId)
 	if err != nil {
 		return nil, err
 	}

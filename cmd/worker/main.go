@@ -1,13 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/protobuf/proto"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -15,6 +19,7 @@ import (
 	"github.com/opsee/basic/schema"
 	"github.com/opsee/pracovnik/worker"
 	"github.com/spf13/viper"
+	"golang.org/x/net/context"
 )
 
 func main() {
@@ -28,6 +33,8 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	maxTasks := viper.GetInt("max_tasks")
+	// in-memory cache of customerId -> bastionId
+	bastionMap := map[string]string{}
 
 	consumer, err := worker.NewConsumer(&worker.ConsumerConfig{
 		Topic:            "_.results",
@@ -46,12 +53,55 @@ func main() {
 		log.WithError(err).Fatal("Cannot connect to database.")
 	}
 
+	// TODO(greg): All of the etcd stuff can go once bastions report their
+	// bastion id in check results.
+	etcdCfg := etcd.Config{
+		Endpoints:               []string{viper.GetString("etcd_address")},
+		Transport:               etcd.DefaultTransport,
+		HeaderTimeoutPerRequest: time.Second,
+	}
+	etcdClient, err := etcd.New(etcdCfg)
+	if err != nil {
+		log.WithError(err).Fatal("Cannot connect to etcd.")
+	}
+
+	kapi := etcd.NewKeysAPI(etcdClient)
+
 	consumer.AddHandler(func(msg *nsq.Message) error {
 		result := &schema.CheckResult{}
 		if err := proto.Unmarshal(msg.Body, result); err != nil {
 			log.WithError(err).Error("Error unmarshalling message from NSQ.")
 			return err
 		}
+
+		// TODO(greg): Once all bastions have been upgraded to include Bastion ID in
+		// their check results, everything in this block can be deleted.
+		// -----------------------------------------------------------------------
+		if result.BastionId == "" {
+			bastionId, ok := bastionMap[result.CustomerId]
+			if !ok {
+				resp, err := kapi.Get(context.Background(), fmt.Sprintf("/opsee.co/routes/%s", result.CustomerId), nil)
+				if err != nil {
+					log.WithError(err).Error("Error getting bastion route from etcd.")
+					return err
+				}
+
+				if len(resp.Node.Nodes) < 1 {
+					log.WithError(err).Error("No bastion found for result in etcd.")
+					return err
+				}
+
+				bastionPath := resp.Node.Nodes[0].Key
+				routeParts := strings.Split(bastionPath, "/")
+				if len(routeParts) != 5 {
+					log.WithError(err).Errorf("Unexpected route length: %d", len(routeParts))
+					return err
+				}
+				bastionId = routeParts[4]
+			}
+			result.BastionId = bastionId
+		}
+		// -----------------------------------------------------------------------
 
 		dynamo := &worker.DynamoStore{dynamodb.New(session.New())}
 		task := worker.NewCheckWorker(db, dynamo, result)
@@ -63,7 +113,7 @@ func main() {
 		return nil
 	})
 
-	worker.AddHook(worker.StateOK, func(id worker.StateId, state *worker.State) {
+	worker.AddHook(func(id worker.StateId, state *worker.State) {
 		logger := log.WithFields(log.Fields{
 			"customer_id":       state.CustomerId,
 			"check_id":          state.CheckId,
