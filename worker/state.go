@@ -45,14 +45,12 @@ type StateFn func(state *State) StateId
 type TransitionHook func(newStateId StateId, state *State)
 
 type ResultMemo struct {
-	CheckId       string `json:"check_id" db:"check_id"`
-	CustomerId    string `json:"customer_id" db:"customer_id"`
-	BastionId     string `json:"bastion_id" db:"bastion_id"`
-	FailingCount  int32  `json:"failing_count" db:"failing_count"`
-	ResponseCount int    `json:"response_count" db:"response_count"`
-
-	// LastUpdated is result.Timestamp.Millis()
-	LastUpdated time.Time `json:"last_updated" db:"last_updated"`
+	CheckId       string    `json:"check_id" db:"check_id"`
+	CustomerId    string    `json:"customer_id" db:"customer_id"`
+	BastionId     string    `json:"bastion_id" db:"bastion_id"`
+	FailingCount  int32     `json:"failing_count" db:"failing_count"`
+	ResponseCount int       `json:"response_count" db:"response_count"`
+	LastUpdated   time.Time `json:"last_updated" db:"last_updated"`
 }
 
 func ResultMemoFromCheckResult(result *schema.CheckResult) *ResultMemo {
