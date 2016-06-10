@@ -103,7 +103,8 @@ func main() {
 		}
 		// -----------------------------------------------------------------------
 
-		dynamo := &worker.DynamoStore{dynamodb.New(session.New())}
+		// For now, the region is just static, because we only have dynamodb in one region.
+		dynamo := &worker.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
 		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()
 		if err != nil {
