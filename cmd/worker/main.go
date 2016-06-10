@@ -39,7 +39,7 @@ func main() {
 	consumer, err := worker.NewConsumer(&worker.ConsumerConfig{
 		Topic:            "_.results",
 		Channel:          "dynamo-results-worker",
-		LookupdAddresses: viper.GetStringSlice("lookupd_addresses"),
+		LookupdAddresses: viper.GetStringSlice("nsqlookupd_addrs"),
 		NSQConfig:        nsqConfig,
 		HandlerCount:     maxTasks,
 	})
