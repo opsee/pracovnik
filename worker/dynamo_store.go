@@ -51,7 +51,7 @@ func (s *DynamoStore) GetResults(result *schema.CheckResult) (map[string]*schema
 	params := &dynamodb.QueryInput{
 		TableName:              aws.String(CheckResultTableName),
 		KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND begins_with(result_id, %s:)", checkId, bastionId)),
-		ScanIndexForward:       aws.Bool(true),
+		ScanIndexForward:       aws.Bool(false),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
 		Limit:                  aws.Int64(1),
 	}
