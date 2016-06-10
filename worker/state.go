@@ -26,6 +26,13 @@ var (
 		"FAIL",
 		"WARN",
 	}
+	ValidStates = []StateId{
+		StateOK,
+		StateFailWait,
+		StatePassWait,
+		StateFail,
+		StateWarn,
+	}
 
 	transitionHooks = map[StateId][]TransitionHook{}
 )
@@ -84,7 +91,7 @@ type State struct {
 }
 
 func AddHook(hook TransitionHook) {
-	for state, _ := range transitionHooks {
+	for _, state := range ValidStates {
 		AddStateHook(state, hook)
 	}
 }
