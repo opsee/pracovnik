@@ -13,7 +13,7 @@ import (
 // assumes a present state of OK.
 func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
-	err := sqlx.Get(q, state, "SELECT cs.id, cs.customer_id, cs.check_id, cs.state, cs.time_entered, cs.last_updated, c.min_failing_count, c.min_failing_time, cs.failing_count FROM check_states AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
+	err := sqlx.Get(q, state, "SELECT cs.state_id, cs.customer_id, cs.check_id, cs.state_name, cs.time_entered, cs.last_updated, c.min_failing_count, c.min_failing_time, cs.failing_count FROM check_states AS cs JOIN checks AS c ON (c.id=cs.check_id) WHERE cs.customer_id=? AND cs.id=?", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
