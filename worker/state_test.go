@@ -15,7 +15,7 @@ func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *St
 		CustomerId:   "customer-id",
 		CheckId:      "check-id",
 		FailingCount: int32(n),
-		LastUpdated:  te.UTC().Unix() * 1000,
+		LastUpdated:  te,
 	}
 
 	return &State{
