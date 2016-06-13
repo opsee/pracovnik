@@ -113,7 +113,7 @@ func main() {
 			"check_id":    result.CheckId,
 			"bastion_id":  result.BastionId,
 		})
-		logger.Info("Processing check result.")
+
 		dynamo := &worker.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
 		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()

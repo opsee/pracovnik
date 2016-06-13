@@ -49,7 +49,6 @@ package worker
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -59,8 +58,10 @@ import (
 )
 
 const (
-	CheckResultTableName   = "check_results"
-	CheckResponseTableName = "check_responses"
+	CheckResultTableName           = "check_results"
+	CheckResultCheckIdIndexName    = "check_id-index"
+	CheckResultCustomerIdIndexName = "customer_id-index"
+	CheckResponseTableName         = "check_responses"
 )
 
 /*
@@ -87,20 +88,12 @@ type DynamoStore struct {
 	DynaClient *dynamodb.DynamoDB
 }
 
-func (s *DynamoStore) GetResults(result *schema.CheckResult) (map[string]*schema.CheckResult, error) {
-	checkId := result.CheckId
-	customerId := result.CustomerId
-	bastionId := result.BastionId
-	if bastionId == "" {
-		bastionId = customerId
-	}
-
+func (s *DynamoStore) GetResultsByCheckId(checkId string) (map[string]*schema.CheckResult, error) {
 	params := &dynamodb.QueryInput{
 		TableName:              aws.String(CheckResultTableName),
-		KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND begins_with(result_id, %s:)", checkId, bastionId)),
-		ScanIndexForward:       aws.Bool(false),
+		IndexName:              aws.String(CheckResultCheckIdIndexName),
+		KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s", checkId)),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
-		Limit:                  aws.Int64(1),
 	}
 
 	resp, err := s.DynaClient.Query(params)
@@ -110,35 +103,40 @@ func (s *DynamoStore) GetResults(result *schema.CheckResult) (map[string]*schema
 
 	results := map[string]*schema.CheckResult{}
 	for _, item := range resp.Items {
-		resultId := item["result_id"]
-		splitResultId := strings.Split(aws.StringValue(resultId.S), ":")
-		resultBastionId := splitResultId[0]
-
 		bastionResult := &schema.CheckResult{}
 		if err := dynamodbattribute.UnmarshalMap(item, bastionResult); err != nil {
 			return nil, err
 		}
 
-		params := &dynamodb.QueryInput{
-			TableName:              aws.String(CheckResponseTableName),
-			KeyConditionExpression: aws.String(fmt.Sprintf("check_id = %s AND result_id = %s", checkId, resultId)),
-			Select:                 aws.String("ALL_ATTRIBUTES"),
-		}
-		grResp, err := s.DynaClient.Query(params)
+		checkResponses := []string{}
+		err := dynamodbattribute.Unmarshal(item["responses"], &checkResponses)
 		if err != nil {
 			return nil, err
 		}
 
-		responses := make([]*schema.CheckResponse, 0, len(grResp.Items))
-		for i, response := range grResp.Items {
-			checkResponse := &schema.CheckResponse{}
-			if err := dynamodbattribute.UnmarshalMap(response, checkResponse); err != nil {
+		checkResponsesAccum := make([]*schema.CheckResponse, len(checkResponses))
+		for _, checkResponse := range checkResponses {
+			params := &dynamodb.QueryInput{
+				TableName:              aws.String(CheckResponseTableName),
+				KeyConditionExpression: aws.String(fmt.Sprintf("response_id = %s", checkResponse)),
+				Select:                 aws.String("ALL_ATTRIBUTES"),
+			}
+
+			checkResponsesQueryResp, err := s.DynaClient.Query(params)
+			if err != nil {
 				return nil, err
 			}
-			responses[i] = checkResponse
+			for i, r := range checkResponsesQueryResp.Items {
+				checkResponse := &schema.CheckResponse{}
+				if err := dynamodbattribute.UnmarshalMap(r, checkResponse); err != nil {
+					return nil, err
+				}
+				checkResponsesAccum[i] = checkResponse
+			}
 		}
-		bastionResult.Responses = responses
-		results[resultBastionId] = bastionResult
+
+		bastionResult.Responses = checkResponsesAccum
+		results[bastionResult.BastionId] = bastionResult
 	}
 
 	return results, nil
@@ -164,7 +162,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		bastionId = bid
 	}
 
-	resultId := fmt.Sprintf("%s:%d", result.CheckId, bastionId)
+	resultId := fmt.Sprintf("%s:%s", result.CheckId, bastionId)
 	rid, err := dynamodbattribute.Marshal(resultId)
 	if err != nil {
 		return err

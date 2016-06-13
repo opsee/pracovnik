@@ -5,6 +5,6 @@ import (
 )
 
 type ResultStore interface {
-	GetResults(*schema.CheckResult) (map[string]*schema.CheckResult, error)
+	GetResultsByCheckId(string) (map[string]*schema.CheckResult, error)
 	PutResult(*schema.CheckResult) error
 }
