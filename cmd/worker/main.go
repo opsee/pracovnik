@@ -89,7 +89,7 @@ func main() {
 				}
 
 				if len(resp.Node.Nodes) < 1 {
-					log.WithError(err).Error("No bastion found for result in etcd.")
+					log.Error("No bastion found for result in etcd.")
 					// When we don't find a bastion for this customer, we just drop their results.
 					// This isn't a problem after all customers are upgraded.
 					return nil
