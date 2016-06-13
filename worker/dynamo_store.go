@@ -1,3 +1,50 @@
+/* There are two hot tables in DynamoDB for CheckResults and CheckResponses
+named check_results and check_responses respectively.
+
+Querying check_results is generally done by querying one of the two
+Global Secondary Indexes (GSIs). The first GSI is on check_id, and
+the second is on customer_id. Querying GSI will return tuples of
+(check_id, result_id) and (customer_id, result_id) items respectively.
+
+The partition key for check_results, "result_id" is a combination of
+<check_id>:<bastion_id>. This should allow relatively even
+partitioning of the checks.
+
+Examples:
+
+To get results for a single check, you would execute the query:
+
+{
+    "TableName": "check_results",
+    "IndexName": "check_id-index",
+    "KeyConditionExpression": "check_id = :check_id"
+}
+
+You would then need to execute a BatchGetItem request to get
+all of the result objects at once.
+
+TODO: we should cache the responses from the first query, because those
+won't change very often. The response from the second request will
+probably never be worth caching.
+
+To get all results for a customer, you would execute the query:
+
+{
+    "TableName": "check_results",
+    "IndexName": "customer_id-index",
+    "KeyConditionExpression": "customer_id = :customer_id"
+}
+
+Similarly, you would then follow it up with a BatchGetItem request for
+every result in the query result set.
+
+CheckResponses are indexed by a "response_id" which is the combination
+<check_id>:<bastion_id>:<target_id>. To get the responses associated
+with a CheckResult, you first query check_results. The result returned
+will include a "responses" field that will be an array of string values
+that are the response_ids of the associated responses. You can then issue
+a BatchGetItem request on check_responses to get each of those.
+*/
 package worker
 
 import (
@@ -117,22 +164,19 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		bastionId = bid
 	}
 
-	resultId := fmt.Sprintf("%s:%d", bastionId, result.Timestamp.Millis())
+	resultId := fmt.Sprintf("%s:%d", result.CheckId, bastionId)
 	rid, err := dynamodbattribute.Marshal(resultId)
 	if err != nil {
 		return err
 	}
 	item["result_id"] = rid
 
-	checkIdAv, err := dynamodbattribute.Marshal(result.CheckId)
-	if err != nil {
-		return err
-	}
+	responseIds := make([]string, 0, len(result.Responses))
 
 	// TODO(greg): parallelize these while maintaining the contract that we
 	// return an error if we have a problem writing a response to dynamodb so
 	// that we requeue and retry.
-	for _, r := range result.Responses {
+	for i, r := range result.Responses {
 		if r.Reply == nil && r.Response != nil {
 			any, err := opsee_types.UnmarshalAny(r.Response)
 			if err != nil {
@@ -159,8 +203,15 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		if err != nil {
 			return err
 		}
-		item["check_id"] = checkIdAv
-		item["result_id"] = rid
+
+		responseId := fmt.Sprintf("%s:%s:%s", result.CheckId, result.BastionId, r.Target.Id)
+		responseIds[i] = responseId
+
+		responseIdAv, err := dynamodbattribute.Marshal(responseId)
+		if err != nil {
+			return err
+		}
+		item["response_id"] = responseIdAv
 
 		params := &dynamodb.PutItemInput{
 			TableName: aws.String(CheckResponseTableName),
@@ -171,6 +222,13 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 			return err
 		}
 	}
+
+	responseIdsAv, err := dynamodbattribute.Marshal(responseIds)
+	if err != nil {
+		return err
+	}
+
+	item["responses"] = responseIdsAv
 
 	params := &dynamodb.PutItemInput{
 		TableName: aws.String(CheckResultTableName),
