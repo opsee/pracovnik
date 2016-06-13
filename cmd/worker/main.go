@@ -90,7 +90,9 @@ func main() {
 
 				if len(resp.Node.Nodes) < 1 {
 					log.WithError(err).Error("No bastion found for result in etcd.")
-					return err
+					// When we don't find a bastion for this customer, we just drop their results.
+					// This isn't a problem after all customers are upgraded.
+					return nil
 				}
 
 				bastionPath := resp.Node.Nodes[0].Key
