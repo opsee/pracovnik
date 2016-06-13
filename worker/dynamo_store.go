@@ -171,7 +171,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 	}
 	item["result_id"] = rid
 
-	responseIds := make([]string, 0, len(result.Responses))
+	responseIds := make([]string, len(result.Responses))
 
 	// TODO(greg): parallelize these while maintaining the contract that we
 	// return an error if we have a problem writing a response to dynamodb so
