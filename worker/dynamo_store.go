@@ -145,6 +145,14 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 			case *schema.CloudWatchResponse:
 				r.Reply = &schema.CheckResponse_CloudwatchResponse{reply}
 			}
+
+			if result.Version < 2 {
+				if r.Target.Type == "host" || r.Target.Type == "external_host" {
+					if r.Target.Address != "" {
+						r.Target.Id = r.Target.Address
+					}
+				}
+			}
 		}
 
 		item, err := dynamodbattribute.MarshalMap(r)

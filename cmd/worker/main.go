@@ -78,7 +78,8 @@ func main() {
 		// TODO(greg): Once all bastions have been upgraded to include Bastion ID in
 		// their check results, everything in this block can be deleted.
 		// -----------------------------------------------------------------------
-		if result.BastionId == "" {
+		if result.Version < 2 {
+			// Set bastion ID
 			bastionId, ok := bastionMap[result.CustomerId]
 			if !ok {
 				resp, err := kapi.Get(context.Background(), fmt.Sprintf("/opsee.co/routes/%s", result.CustomerId), nil)
