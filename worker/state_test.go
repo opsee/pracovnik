@@ -24,7 +24,7 @@ func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *St
 		TimeEntered:     te,
 		LastUpdated:     t,
 		Id:              sid,
-		State:           StateStrings[sid],
+		State:           sid.String(),
 		MinFailingTime:  tw,
 		Results: map[string]*ResultMemo{
 			"bastion-id": rm,

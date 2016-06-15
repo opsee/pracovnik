@@ -32,7 +32,7 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 			CheckId:         checkId,
 			CustomerId:      customerId,
 			Id:              StateOK,
-			State:           StateStrings[StateOK],
+			State:           StateOK.String(),
 			TimeEntered:     time.Now(),
 			LastUpdated:     time.Now(),
 			MinFailingCount: check.MinFailingCount,

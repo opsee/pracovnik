@@ -17,15 +17,8 @@ const (
 )
 
 var (
-	StateFnMap   = map[StateId]StateFn{}
-	StateStrings = []string{
-		"INVALID",
-		"OK",
-		"FAIL_WAIT",
-		"PASS_WAIT",
-		"FAIL",
-		"WARN",
-	}
+	StateFnMap = map[StateId]StateFn{}
+
 	ValidStates = []StateId{
 		StateOK,
 		StateFailWait,
@@ -46,6 +39,23 @@ func init() {
 }
 
 type StateId int
+
+func (s StateId) String() string {
+	switch s {
+	case StateOK:
+		return "OK"
+	case StateFailWait:
+		return "FAIL_WAIT"
+	case StatePassWait:
+		return "PASS_WAIT"
+	case StateFail:
+		return "FAIL"
+	case StateWarn:
+		return "WARN"
+	default:
+		return "INVALID"
+	}
+}
 
 type StateFn func(state *State) StateId
 
@@ -140,7 +150,7 @@ func (state *State) Transition(result *schema.CheckResult) error {
 
 	sFn, ok := StateFnMap[state.Id]
 	if !ok {
-		return fmt.Errorf("Invalid state: %s", StateStrings[state.Id])
+		return fmt.Errorf("Invalid state: %s", state.Id)
 	}
 
 	newSid := sFn(state)
@@ -156,7 +166,7 @@ func (state *State) Transition(result *schema.CheckResult) error {
 		state.LastUpdated = t
 	}
 	state.Id = newSid
-	state.State = StateStrings[newSid]
+	state.State = newSid.String()
 
 	return nil
 }

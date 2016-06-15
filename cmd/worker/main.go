@@ -134,7 +134,7 @@ func main() {
 			"failing_count":     state.FailingCount,
 			"failing_time_s":    state.TimeInState().Seconds(),
 		})
-		logger.Infof("check moving from state %s -> %s", state.State, worker.StateStrings[id])
+		logger.Infof("check moving from state %s -> %s", state.State, id.String())
 	})
 
 	if err := consumer.Start(); err != nil {
