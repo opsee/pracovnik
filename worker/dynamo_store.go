@@ -202,9 +202,13 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		if err != nil {
 			return err
 		}
+		responseProtoAv, err := dynamodbattribute.Marshal(responseProto)
+		if err != nil {
+			return err
+		}
 
 		item := map[string]*dynamodb.AttributeValue{}
-		item["response_protobuf"] = responseProto
+		item["response_protobuf"] = responseProtoAv
 
 		responseId := fmt.Sprintf("%s:%s:%s", result.CheckId, result.BastionId, r.Target.Id)
 		responseIds[i] = responseId
