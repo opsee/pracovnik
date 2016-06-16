@@ -53,6 +53,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/golang/protobuf/proto"
 	"github.com/opsee/basic/schema"
 	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 )
@@ -197,10 +198,13 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 			}
 		}
 
-		item, err := dynamodbattribute.MarshalMap(r)
+		responseProto, err := proto.Marshal(r)
 		if err != nil {
 			return err
 		}
+
+		item := map[string]*dynamodb.AttributeValue{}
+		item["response_protobuf"] = responseProto
 
 		responseId := fmt.Sprintf("%s:%s:%s", result.CheckId, result.BastionId, r.Target.Id)
 		responseIds[i] = responseId
