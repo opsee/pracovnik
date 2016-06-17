@@ -154,9 +154,14 @@ func main() {
 	queueUrl := aws.String("https://sqs.us-west-2.amazonaws.com/933693344490/CheckNotifications")
 
 	publishToSQS := func(result *schema.CheckResult) {
+		logger := log.WithFields(log.Fields{
+			"customer_id": result.CustomerId,
+			"check_id":    result.CheckId,
+		})
+
 		resultBytes, err := proto.Marshal(result)
 		if err != nil {
-			log.WithError(err).Error("Unable to marshal CheckResult to protobuf")
+			logger.WithError(err).Error("Unable to marshal CheckResult to protobuf")
 		}
 		resultBytesStr := base64.StdEncoding.EncodeToString(resultBytes)
 
@@ -165,7 +170,7 @@ func main() {
 			MessageBody: aws.String(resultBytesStr),
 		})
 		if err != nil {
-			log.WithError(err).Error("Unable to send message to SQS.")
+			logger.WithError(err).Error("Unable to send message to SQS.")
 		}
 	}
 
