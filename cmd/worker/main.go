@@ -27,6 +27,15 @@ func main() {
 	viper.SetEnvPrefix("pracovnik")
 	viper.AutomaticEnv()
 
+	viper.SetDefault("log_level", "info")
+	logLevelStr := viper.GetString("log_level")
+	logLevel, err := log.ParseLevel(logLevelStr)
+	if err != nil {
+		log.WithError(err).Error("Could not parse log level, using default.")
+		logLevel = log.InfoLevel
+	}
+	log.SetLevel(logLevel)
+
 	nsqConfig := nsq.NewConfig()
 	nsqConfig.MaxInFlight = 4
 

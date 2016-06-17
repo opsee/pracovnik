@@ -64,7 +64,7 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 		return nil, err
 	}
 
-	logger.Debug("Handling check result: ", w.result)
+	logger.Debug("Handling check result")
 
 	if err := w.rStore.PutResult(w.result); err != nil {
 		logger.WithError(err).Error("Error putting CheckResult to dynamodb.")

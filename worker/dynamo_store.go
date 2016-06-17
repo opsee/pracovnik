@@ -50,6 +50,7 @@ package worker
 import (
 	"fmt"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -171,7 +172,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 	item["result_id"] = rid
 
 	responseIds := make([]string, len(result.Responses))
-
+	log.WithFields(log.Fields{"result_id": resultId}).Debugf("Result has %d responses.", len(result.Responses))
 	// TODO(greg): parallelize these while maintaining the contract that we
 	// return an error if we have a problem writing a response to dynamodb so
 	// that we requeue and retry.
@@ -219,6 +220,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		}
 		item["response_id"] = responseIdAv
 
+		log.WithFields(log.Fields{"response_id": responseId}).Debugf("Putting %d of %d responses to DynamoDB.", i+1, len(result.Responses))
 		params := &dynamodb.PutItemInput{
 			TableName: aws.String(CheckResponseTableName),
 			Item:      item,
