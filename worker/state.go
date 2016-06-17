@@ -59,7 +59,7 @@ func (s StateId) String() string {
 
 type StateFn func(state *State) StateId
 
-type TransitionHook func(newStateId StateId, state *State)
+type TransitionHook func(newStateId StateId, state *State, result *schema.CheckResult)
 
 type ResultMemo struct {
 	CheckId       string    `json:"check_id" db:"check_id"`
@@ -115,11 +115,11 @@ func AddStateHook(id StateId, hook TransitionHook) {
 	transitionHooks[id] = append(transitionHooks[id], hook)
 }
 
-func callHooks(id StateId, state *State) {
+func callHooks(id StateId, state *State, result *schema.CheckResult) {
 	hooks, ok := transitionHooks[id]
 	if ok {
 		for _, hook := range hooks {
-			hook(id, state)
+			hook(id, state, result)
 		}
 	}
 }
@@ -160,7 +160,7 @@ func (state *State) Transition(result *schema.CheckResult) error {
 
 	if newSid != state.Id {
 		// hooks should be called on the state _before_ it has been modified.
-		callHooks(newSid, state)
+		callHooks(newSid, state, result)
 		t := time.Now()
 		state.TimeEntered = t
 		state.LastUpdated = t

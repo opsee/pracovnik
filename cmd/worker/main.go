@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/protobuf/proto"
 	"github.com/jmoiron/sqlx"
@@ -77,6 +79,7 @@ func main() {
 
 	kapi := etcd.NewKeysAPI(etcdClient)
 
+	dynamo := &worker.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
 	consumer.AddHandler(func(msg *nsq.Message) error {
 		result := &schema.CheckResult{}
 		if err := proto.Unmarshal(msg.Body, result); err != nil {
@@ -123,7 +126,6 @@ func main() {
 			"bastion_id":  result.BastionId,
 		})
 
-		dynamo := &worker.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
 		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()
 		if err != nil {
@@ -134,7 +136,7 @@ func main() {
 		return nil
 	})
 
-	worker.AddHook(func(id worker.StateId, state *worker.State) {
+	worker.AddHook(func(id worker.StateId, state *worker.State, result *schema.CheckResult) {
 		logger := log.WithFields(log.Fields{
 			"customer_id":       state.CustomerId,
 			"check_id":          state.CheckId,
@@ -142,8 +144,91 @@ func main() {
 			"min_failing_time":  state.MinFailingTime,
 			"failing_count":     state.FailingCount,
 			"failing_time_s":    state.TimeInState().Seconds(),
+			"old_state":         state.State,
+			"new_state":         id.String(),
 		})
-		logger.Infof("check moving from state %s -> %s", state.State, id.String())
+		logger.Info("check state changed")
+	})
+
+	sqsClient := sqs.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))
+	queueUrl := aws.String("https://sqs.us-west-2.amazonaws.com/933693344490/CheckNotifications")
+
+	publishToSQS := func(result *schema.CheckResult) {
+		resultBytes, err := proto.Marshal(result)
+		if err != nil {
+			log.WithError(err).Error("Unable to marshal CheckResult to protobuf")
+		}
+		resultBytesStr := base64.StdEncoding.EncodeToString(resultBytes)
+
+		_, err = sqsClient.SendMessage(&sqs.SendMessageInput{
+			QueueUrl:    queueUrl,
+			MessageBody: aws.String(resultBytesStr),
+		})
+		if err != nil {
+			log.WithError(err).Error("Unable to send message to SQS.")
+		}
+	}
+
+	// TODO(greg): We should be able to set hooks on transitions from->to specific
+	// states. Not have to guard in the transition function.
+	//
+	// transition functions need to be able to signal that we couldn't transition state.
+	// in which case we should requeue the message. this could be due to a temporary SQS
+	// failure or an error with the result. maybe logging/instrumenting this is enough?
+	worker.AddStateHook(worker.StateOK, func(id worker.StateId, state *worker.State, result *schema.CheckResult) {
+		logger := log.WithFields(log.Fields{
+			"customer_id":       state.CustomerId,
+			"check_id":          state.CheckId,
+			"min_failing_count": state.MinFailingCount,
+			"min_failing_time":  state.MinFailingTime,
+			"failing_count":     state.FailingCount,
+			"failing_time_s":    state.TimeInState().Seconds(),
+			"old_state":         state.State,
+			"new_state":         id.String(),
+		})
+
+		logger.Infof("check transitioned to passing")
+		// We go FAIL -> PASS_WAIT -> OK or WARN
+		if state.Id == worker.StatePassWait && id == worker.StateOK {
+			publishToSQS(result)
+		}
+	})
+
+	worker.AddStateHook(worker.StateWarn, func(id worker.StateId, state *worker.State, result *schema.CheckResult) {
+		logger := log.WithFields(log.Fields{
+			"customer_id":       state.CustomerId,
+			"check_id":          state.CheckId,
+			"min_failing_count": state.MinFailingCount,
+			"min_failing_time":  state.MinFailingTime,
+			"failing_count":     state.FailingCount,
+			"failing_time_s":    state.TimeInState().Seconds(),
+			"old_state":         state.State,
+			"new_state":         id.String(),
+		})
+
+		logger.Infof("check transitioned to warning")
+		// We go FAIL -> PASS_WAIT -> OK or WARN
+		if state.Id == worker.StatePassWait && id == worker.StateWarn {
+			publishToSQS(result)
+		}
+	})
+
+	worker.AddStateHook(worker.StateFail, func(id worker.StateId, state *worker.State, result *schema.CheckResult) {
+		logger := log.WithFields(log.Fields{
+			"customer_id":       state.CustomerId,
+			"check_id":          state.CheckId,
+			"min_failing_count": state.MinFailingCount,
+			"min_failing_time":  state.MinFailingTime,
+			"failing_count":     state.FailingCount,
+			"failing_time_s":    state.TimeInState().Seconds(),
+			"old_state":         state.State,
+			"new_state":         id.String(),
+		})
+
+		logger.Infof("check transitioned to fail")
+		if state.Id == worker.StateFailWait && id == worker.StateFail {
+			publishToSQS(result)
+		}
 	})
 
 	if err := consumer.Start(); err != nil {
