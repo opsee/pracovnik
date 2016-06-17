@@ -151,7 +151,7 @@ func main() {
 	})
 
 	sqsClient := sqs.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))
-	queueUrl := aws.String("https://sqs.us-west-2.amazonaws.com/933693344490/CheckNotifications")
+	queueUrl := aws.String("https://sqs.us-west-2.amazonaws.com/933693344490/OpseeAlerts")
 
 	publishToSQS := func(result *schema.CheckResult) {
 		logger := log.WithFields(log.Fields{
