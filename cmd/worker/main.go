@@ -164,6 +164,7 @@ func main() {
 			logger.WithError(err).Error("Unable to marshal CheckResult to protobuf")
 		}
 		resultBytesStr := base64.StdEncoding.EncodeToString(resultBytes)
+		logger.Infof("Length of message body: %d", len(resultBytesStr))
 
 		_, err = sqsClient.SendMessage(&sqs.SendMessageInput{
 			QueueUrl:    queueUrl,
