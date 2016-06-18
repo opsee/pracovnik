@@ -66,6 +66,23 @@ const (
 	CheckResponseTableName         = "check_responses"
 )
 
+var (
+	checkResultsTablePutItem = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "check_results_put_items",
+		Help: "Total number of PutItem calls on the check_results table.",
+	})
+
+	checkResponsesTablePutItem = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "check_responses_put_items",
+		Help: "Total number of PutItem calls on the check_responses table.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(checkResultsTablePutItem)
+	prometheus.MustRegister(checkResponsesTablePutItem)
+}
+
 /*
 message CheckResult {
 	string check_id = 1;
@@ -229,6 +246,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 		if err != nil {
 			return err
 		}
+		checkResponsesTablePutItem.Inc()
 	}
 
 	responseIdsAv, err := dynamodbattribute.Marshal(responseIds)
@@ -247,6 +265,7 @@ func (s *DynamoStore) PutResult(result *schema.CheckResult) error {
 	if err != nil {
 		return err
 	}
+	checkResultsTablePutItem.Inc()
 
 	return nil
 }
