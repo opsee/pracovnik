@@ -60,7 +60,10 @@ func main() {
 		ticker := time.Tick(5 * time.Second)
 		for {
 			<-ticker
-			prometheus.Push("pracovnik", hostname, "172.30.35.35:9091")
+			err = prometheus.Push("pracovnik", hostname, "172.30.35.35:9091")
+			if err != nil {
+				log.WithError(err).Error("Error pushing to pushgateway.")
+			}
 		}
 	}()
 
