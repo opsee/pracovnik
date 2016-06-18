@@ -57,6 +57,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/opsee/basic/schema"
 	opsee_types "github.com/opsee/protobuf/opseeproto/types"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
