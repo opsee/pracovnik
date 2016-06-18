@@ -13,9 +13,11 @@ and CheckResponses in DynamoDB.
 Environment variables needed:
 
 ```
-- PRACOVNIK_MAX_TASKS - Maximum concurrency for the worker
-- PRACOVNIK_LOOKUPD_ADDRESSES - space-delimited list of nsqlookupd addresses
-- PRACOVNIK_POSTGRES_CONN - URL to postgres connection
+- PRACOVNIK_MAX_TASKS - Maximum concurrency for the worker (e.g. 10)
+- PRACOVNIK_LOOKUPD_ADDRESSES - space-delimited list of nsqlookupd addresses (e.g. nsqlookupd:4161)
+- PRACOVNIK_POSTGRES_CONN - URL to postgres connection (e.g. postgres://localhost:5432/hugs)
+- PRACOVNIK_ETCD_ADDRESS - etcd api address (e.g. http://localhost:2379)
+- PRACOVNIK_ALERTS_SQS_URL - URL to SQS queue for alerting (e.g. https://sqs.us-west-2.amazonaws.com/933693344490/OpseeAlerts)
 ```
 
 ### Postgres and Migrations

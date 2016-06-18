@@ -151,7 +151,7 @@ func main() {
 	})
 
 	sqsClient := sqs.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))
-	queueUrl := aws.String("https://sqs.us-west-2.amazonaws.com/933693344490/OpseeAlerts")
+	queueUrl := viper.GetString("alerts_sqs_url")
 
 	publishToSQS := func(result *schema.CheckResult) {
 		logger := log.WithFields(log.Fields{
@@ -166,8 +166,13 @@ func main() {
 		resultBytesStr := base64.StdEncoding.EncodeToString(resultBytes)
 		logger.Infof("Length of message body: %d", len(resultBytesStr))
 
+		if queueUrl == "" {
+			logger.Error("No queue URL specified. Not publishing message.")
+			return
+		}
+
 		_, err = sqsClient.SendMessage(&sqs.SendMessageInput{
-			QueueUrl:    queueUrl,
+			QueueUrl:    aws.String(queueUrl),
 			MessageBody: aws.String(resultBytesStr),
 		})
 		if err != nil {
