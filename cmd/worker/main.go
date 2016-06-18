@@ -21,9 +21,21 @@ import (
 	"github.com/nsqio/go-nsq"
 	"github.com/opsee/basic/schema"
 	"github.com/opsee/pracovnik/worker"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 )
+
+var (
+	checkResultsHandled = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "check_results_handled",
+		Help: "Total number of check results processed.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(checkResultsHandled)
+}
 
 func main() {
 	viper.SetEnvPrefix("pracovnik")
@@ -37,6 +49,20 @@ func main() {
 		logLevel = log.InfoLevel
 	}
 	log.SetLevel(logLevel)
+
+	go func() {
+		hostname, err := os.Hostname()
+		if err != nil {
+			log.WithError(err).Error("Error getting hostname.")
+			return
+		}
+
+		ticker := time.Tick(5 * time.Second)
+		for {
+			<-ticker
+			prometheus.Push("pracovnik", hostname, "172.30.35.35:9091")
+		}
+	}()
 
 	nsqConfig := nsq.NewConfig()
 	nsqConfig.MaxInFlight = 4
@@ -133,6 +159,7 @@ func main() {
 			return err
 		}
 
+		checkResultsHandled.Inc()
 		return nil
 	})
 
