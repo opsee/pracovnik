@@ -259,7 +259,7 @@ func main() {
 		logger.Infof("check transitioned to passing")
 		// We go FAIL -> PASS_WAIT -> OK or WARN
 		if state.Id == worker.StatePassWait && id == worker.StateOK {
-			publishToSQS(result)
+			publishToNSQ(result)
 		}
 	})
 
