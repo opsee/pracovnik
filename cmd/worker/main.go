@@ -89,6 +89,12 @@ func main() {
 		log.WithError(err).Fatal("Failed to create consumer.")
 	}
 
+	nsqdHost := viper.GetString("nsqd_host")
+	producer, err := nsq.NewProducer(nsqdHost, nsqConfig)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to create producer")
+	}
+
 	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
 	if err != nil {
 		log.WithError(err).Fatal("Cannot connect to database.")
@@ -217,6 +223,21 @@ func main() {
 		}
 	}
 
+	publishToNSQ := func(result *schema.CheckResult) {
+		logger := log.WithFields(log.Fields{
+			"customer_id": result.CustomerId,
+			"check_id":    result.CheckId,
+		})
+
+		resultBytes, err := proto.Marshal(result)
+		if err != nil {
+			logger.WithError(err).Error("Unable to marshal CheckResult to protobuf")
+		}
+		if err := producer.Publish("alerts", resultBytes); err != nil {
+			logger.WithError(err).Error("Error publishing alert to NSQ.")
+		}
+	}
+
 	// TODO(greg): We should be able to set hooks on transitions from->to specific
 	// states. Not have to guard in the transition function.
 	//
@@ -257,7 +278,7 @@ func main() {
 		logger.Infof("check transitioned to warning")
 		// We go FAIL -> PASS_WAIT -> OK or WARN
 		if state.Id == worker.StatePassWait && id == worker.StateWarn {
-			publishToSQS(result)
+			publishToNSQ(result)
 		}
 	})
 
@@ -275,7 +296,7 @@ func main() {
 
 		logger.Infof("check transitioned to fail")
 		if state.Id == worker.StateFailWait && id == worker.StateFail {
-			publishToSQS(result)
+			publishToNSQ(result)
 		}
 	})
 
