@@ -66,7 +66,7 @@ func PutState(q sqlx.Ext, state *State) error {
 }
 
 func PutMemo(q sqlx.Ext, memo *ResultMemo) error {
-	_, err := sqlx.NamedExec(q, "INSERT INTO check_state_memos (check_id, customer_id, bastion_id, failing_count, response_count, last_updated) VALUES (:check_id, :customer_id, :bastion_id, :failing_count, :response_count, :last_updated) ON CONFLICT (check_id) DO UPDATE SET failing_count = :failing_count, response_count = :response_count, last_updated = :last_updated", memo)
+	_, err := sqlx.NamedExec(q, "INSERT INTO check_state_memos (check_id, customer_id, bastion_id, failing_count, response_count, last_updated) VALUES (:check_id, :customer_id, :bastion_id, :failing_count, :response_count, :last_updated) ON CONFLICT (check_id, bastion_id) DO UPDATE SET failing_count = :failing_count, response_count = :response_count, last_updated = :last_updated", memo)
 	if err != nil {
 		return err
 	}
