@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/gogo/protobuf/proto"
 	"github.com/jmoiron/sqlx"
@@ -192,36 +190,6 @@ func main() {
 		})
 		logger.Info("check state changed")
 	})
-
-	sqsClient := sqs.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))
-	queueUrl := viper.GetString("alerts_sqs_url")
-
-	publishToSQS := func(result *schema.CheckResult) {
-		logger := log.WithFields(log.Fields{
-			"customer_id": result.CustomerId,
-			"check_id":    result.CheckId,
-		})
-
-		resultBytes, err := proto.Marshal(result)
-		if err != nil {
-			logger.WithError(err).Error("Unable to marshal CheckResult to protobuf")
-		}
-		resultBytesStr := base64.StdEncoding.EncodeToString(resultBytes)
-		logger.Infof("Length of message body: %d", len(resultBytesStr))
-
-		if queueUrl == "" {
-			logger.Error("No queue URL specified. Not publishing message.")
-			return
-		}
-
-		_, err = sqsClient.SendMessage(&sqs.SendMessageInput{
-			QueueUrl:    aws.String(queueUrl),
-			MessageBody: aws.String(resultBytesStr),
-		})
-		if err != nil {
-			logger.WithError(err).Error("Unable to send message to SQS.")
-		}
-	}
 
 	publishToNSQ := func(result *schema.CheckResult) {
 		logger := log.WithFields(log.Fields{
