@@ -83,7 +83,7 @@ func main() {
 
 		// TODO(greg): CheckResult objects should probably have a validator.
 		if result.CustomerId == "" || result.CheckId == "" {
-			log.Error("Received invalid check result.")
+			logger.Error("Received invalid check result.")
 			return nil
 		}
 
