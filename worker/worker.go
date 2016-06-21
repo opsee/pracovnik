@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"database/sql"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -76,6 +77,11 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 	if err != nil {
 		logger.WithError(err).Error("Error getting state.")
 		rollback(logger, tx)
+
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
