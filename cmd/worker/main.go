@@ -116,6 +116,18 @@ func main() {
 			return err
 		}
 
+		logger := log.WithFields(log.Fields{
+			"customer_id": result.CustomerId,
+			"check_id":    result.CheckId,
+			"bastion_id":  result.BastionId,
+		})
+
+		// TODO(greg): CheckResult objects should probably have a validator.
+		if result.CustomerId == "" || result.CheckId == "" {
+			logger.Error("Received invalid check result.")
+			return nil
+		}
+
 		// TODO(greg): Once all bastions have been upgraded to include Bastion ID in
 		// their check results, everything in this block can be deleted.
 		// -----------------------------------------------------------------------
@@ -149,11 +161,6 @@ func main() {
 		// -----------------------------------------------------------------------
 
 		// For now, the region is just static, because we only have dynamodb in one region.
-		logger := log.WithFields(log.Fields{
-			"customer_id": result.CustomerId,
-			"check_id":    result.CheckId,
-			"bastion_id":  result.BastionId,
-		})
 
 		task := worker.NewCheckWorker(db, dynamo, result)
 		_, err = task.Execute()
