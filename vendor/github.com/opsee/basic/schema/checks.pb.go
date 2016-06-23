@@ -7,6 +7,7 @@
 
 	It is generated from these files:
 		checks.proto
+		flags.proto
 		region.proto
 		stack.proto
 		user.proto
@@ -33,6 +34,7 @@
 		BastionState
 		Stack
 		RoleStack
+		UserFlags
 		User
 		Customer
 		Team
