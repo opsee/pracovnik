@@ -10,14 +10,6 @@ import (
 )
 
 func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *State {
-	rm := &ResultMemo{
-		BastionId:    "bastion-id",
-		CustomerId:   "customer-id",
-		CheckId:      "check-id",
-		FailingCount: int32(n),
-		LastUpdated:  te,
-	}
-
 	return &State{
 		FailingCount:    int32(n),
 		MinFailingCount: int32(f),
@@ -26,9 +18,6 @@ func testMockState(sid StateId, f, n int, t, te time.Time, tw time.Duration) *St
 		Id:              sid,
 		State:           sid.String(),
 		MinFailingTime:  tw,
-		Results: map[string]*ResultMemo{
-			"bastion-id": rm,
-		},
 	}
 }
 
@@ -37,8 +26,8 @@ func testMockResult(responseCount, failingCount int) *schema.CheckResult {
 	ts.Scan(time.Now())
 	r := &schema.CheckResult{
 		CheckId:    "check-id",
-		CustomerId: "customer-id",
-		BastionId:  "bastion-id",
+		CustomerId: "11111111-1111-1111-1111-111111111111",
+		BastionId:  "61f25e94-4f6e-11e5-a99f-4771161a3518",
 		Responses:  make([]*schema.CheckResponse, responseCount),
 		Timestamp:  ts,
 	}
@@ -56,6 +45,7 @@ func testMockResult(responseCount, failingCount int) *schema.CheckResult {
 func TestOkToOk(t *testing.T) {
 	s := testMockState(StateOK, 2, 0, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 0)
+	s.FailingCount = 0
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -65,6 +55,7 @@ func TestOkToOk(t *testing.T) {
 func TestOkToWarn(t *testing.T) {
 	s := testMockState(StateOK, 2, 0, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -74,6 +65,7 @@ func TestOkToWarn(t *testing.T) {
 func TestOkToFailWait(t *testing.T) {
 	s := testMockState(StateOK, 2, 0, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -83,6 +75,7 @@ func TestOkToFailWait(t *testing.T) {
 func TestFailWaitToFailWait(t *testing.T) {
 	s := testMockState(StateFailWait, 2, 2, time.Now(), time.Now(), 30*time.Second)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -92,6 +85,7 @@ func TestFailWaitToFailWait(t *testing.T) {
 func TestFailWaitToOk(t *testing.T) {
 	s := testMockState(StateFailWait, 2, 2, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 0)
+	s.FailingCount = 0
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -101,6 +95,7 @@ func TestFailWaitToOk(t *testing.T) {
 func TestFailWaitToFail(t *testing.T) {
 	s := testMockState(StateFailWait, 2, 2, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -110,6 +105,7 @@ func TestFailWaitToFail(t *testing.T) {
 func TestFailWaitToWarn(t *testing.T) {
 	s := testMockState(StateFailWait, 2, 2, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -119,6 +115,7 @@ func TestFailWaitToWarn(t *testing.T) {
 func TestPassWaitToPassWait(t *testing.T) {
 	s := testMockState(StatePassWait, 2, 1, time.Now(), time.Now(), 30*time.Second)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -128,6 +125,7 @@ func TestPassWaitToPassWait(t *testing.T) {
 func TestPassWaitToFail(t *testing.T) {
 	s := testMockState(StatePassWait, 2, 1, time.Now(), time.Now(), 30*time.Second)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -137,6 +135,7 @@ func TestPassWaitToFail(t *testing.T) {
 func TestPassWaitToWarn(t *testing.T) {
 	s := testMockState(StatePassWait, 2, 1, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -146,6 +145,7 @@ func TestPassWaitToWarn(t *testing.T) {
 func TestPassWaitToOk(t *testing.T) {
 	s := testMockState(StatePassWait, 2, 1, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 0)
+	s.FailingCount = 0
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -155,6 +155,7 @@ func TestPassWaitToOk(t *testing.T) {
 func TestFailToFail(t *testing.T) {
 	s := testMockState(StateFail, 2, 2, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -164,6 +165,7 @@ func TestFailToFail(t *testing.T) {
 func TestFailToPassWait(t *testing.T) {
 	s := testMockState(StateFail, 2, 2, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -173,6 +175,7 @@ func TestFailToPassWait(t *testing.T) {
 func TestWarnToWarn(t *testing.T) {
 	s := testMockState(StateWarn, 2, 1, time.Now(), time.Now().Add(-1*time.Minute), 30*time.Second)
 	r := testMockResult(2, 1)
+	s.FailingCount = 1
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -182,6 +185,7 @@ func TestWarnToWarn(t *testing.T) {
 func TestWarnToOk(t *testing.T) {
 	s := testMockState(StateWarn, 2, 1, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 0)
+	s.FailingCount = 0
 
 	err := s.Transition(r)
 	assert.Nil(t, err)
@@ -191,6 +195,7 @@ func TestWarnToOk(t *testing.T) {
 func TestWarnToFailWait(t *testing.T) {
 	s := testMockState(StateWarn, 2, 1, time.Now(), time.Now(), 0)
 	r := testMockResult(2, 2)
+	s.FailingCount = 2
 
 	err := s.Transition(r)
 	assert.Nil(t, err)

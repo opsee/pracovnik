@@ -13,6 +13,8 @@ fmt:
 	@gofmt -w ./
 
 deps:
+	docker-compose stop
+	docker-compose rm -f
 	docker-compose up -d
 	docker run --link $(PROJECT)_postgresql:postgres aanand/wait
 

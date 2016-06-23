@@ -38,12 +38,17 @@ message Check {
 	}
 	repeated Notification notifications = 9;
 	string customer_id = 10 [(gogoproto.moretags) = "db:\"customer_id\""];
-	string execution_group_id = 11;
+	string execution_group_id = 11 [(gogoproto.moretags) = "db:\"execution_group_id\""];
 	int32 min_failing_count = 12 [(gogoproto.moretags) = "db:\"min_failing_count\""];
 	int64 min_failing_time = 13 [(gogoproto.moretags) = "db:\"min_failing_time\""];
 	int32 failing_count = 14;
 	int32 response_count = 15;
 	string state = 16;
+}
+
+message CheckTargets {
+	Check check = 1;
+	repeated Target targets = 2;
 }
 
 message Notification {
@@ -136,4 +141,5 @@ message CheckResult {
 	string check_name = 7;
 	int32 version = 8;
 	string bastion_id = 9;
+	string region = 10;
 }
