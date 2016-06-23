@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
 	"github.com/opsee/basic/schema"
+	"github.com/opsee/pracovnik/results"
 	"golang.org/x/net/context"
 )
 
@@ -18,7 +19,7 @@ var (
 
 type CheckWorker struct {
 	db      *sqlx.DB
-	rStore  ResultStore
+	rStore  results.Store
 	context context.Context
 	result  *schema.CheckResult
 }
@@ -39,7 +40,7 @@ func commit(logger log.FieldLogger, tx *sqlx.Tx) error {
 	return err
 }
 
-func NewCheckWorker(db *sqlx.DB, rStore ResultStore, result *schema.CheckResult) *CheckWorker {
+func NewCheckWorker(db *sqlx.DB, rStore results.Store, result *schema.CheckResult) *CheckWorker {
 	return &CheckWorker{
 		db:      db,
 		rStore:  rStore,

@@ -18,6 +18,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/nsqio/go-nsq"
 	"github.com/opsee/basic/schema"
+	"github.com/opsee/pracovnik/results"
 	"github.com/opsee/pracovnik/worker"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
@@ -112,7 +113,7 @@ func main() {
 
 	kapi := etcd.NewKeysAPI(etcdClient)
 
-	dynamo := &worker.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
+	dynamo := &results.DynamoStore{dynamodb.New(session.New(&aws.Config{Region: aws.String("us-west-2")}))}
 	consumer.AddHandler(func(msg *nsq.Message) error {
 		result := &schema.CheckResult{}
 		if err := proto.Unmarshal(msg.Body, result); err != nil {

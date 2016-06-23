@@ -1,10 +1,10 @@
-package worker
+package results
 
 import (
 	"github.com/opsee/basic/schema"
 )
 
-type ResultStore interface {
+type Store interface {
 	GetResultsByCheckId(string) (map[string]*schema.CheckResult, error)
 	PutResult(*schema.CheckResult) error
 }

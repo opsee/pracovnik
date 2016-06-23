@@ -45,7 +45,7 @@ will include a "responses" field that will be an array of string values
 that are the response_ids of the associated responses. You can then issue
 a BatchGetItem request on check_responses to get each of those.
 */
-package worker
+package results
 
 import (
 	"fmt"
