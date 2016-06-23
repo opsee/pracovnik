@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -12,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type fakeDynamo struct {
+type fakeStore struct {
 	fail bool
 }
 
-func (s *fakeDynamo) PutResult(result *schema.CheckResult) error {
+func (s *fakeStore) PutResult(result *schema.CheckResult) error {
 	if s.fail {
 		return errors.New("")
 	}
@@ -24,7 +25,7 @@ func (s *fakeDynamo) PutResult(result *schema.CheckResult) error {
 	return nil
 }
 
-func (s *fakeDynamo) GetResultsByCheckId(checkId string) (map[string]*schema.CheckResult, error) {
+func (s *fakeStore) GetResultsByCheckId(checkId string) (map[string]*schema.CheckResult, error) {
 	if s.fail {
 		return nil, errors.New("")
 	}
@@ -35,7 +36,7 @@ func (s *fakeDynamo) GetResultsByCheckId(checkId string) (map[string]*schema.Che
 func TestPutResultFailure(t *testing.T) {
 	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
 	assert.Nil(t, err)
-	dynamo := &fakeDynamo{true}
+	dynamo := &fakeStore{true}
 	result := testMockResult(2, 0)
 
 	wrkr := NewCheckWorker(db, dynamo, result)
@@ -46,12 +47,12 @@ func TestPutResultFailure(t *testing.T) {
 func TestExistingState(t *testing.T) {
 	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
 	assert.Nil(t, err)
-	dynamo := &fakeDynamo{false}
+	dynamo := &fakeStore{false}
 	result := testMockResult(2, 0)
 
 	state := &State{
 		CheckId:     "check-id",
-		CustomerId:  "customer-id",
+		CustomerId:  "11111111-1111-1111-1111-111111111111",
 		Id:          StateOK,
 		State:       "OK",
 		TimeEntered: time.Now(),
@@ -64,10 +65,32 @@ func TestExistingState(t *testing.T) {
 	wrkr := NewCheckWorker(db, dynamo, result)
 	_, err = wrkr.Execute()
 	assert.Nil(t, err)
+}
 
+func testSetupFixtures() {
+	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
+	if err != nil {
+		panic(err)
+	}
+	check := &schema.Check{
+		Id:               "check-id",
+		CustomerId:       "11111111-1111-1111-1111-111111111111",
+		ExecutionGroupId: "11111111-1111-1111-1111-111111111111",
+		Name:             "check",
+		MinFailingCount:  1,
+		MinFailingTime:   90,
+	}
+	_, err = sqlx.NamedExec(db, "INSERT INTO checks (id, min_failing_count, min_failing_time, customer_id, execution_group_id, name, target_type, target_id) VALUES (:id, :min_failing_count, :min_failing_time, :customer_id, :execution_group_id, :name, 'target-id', 'target-type')", check)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestMain(m *testing.M) {
 	viper.SetEnvPrefix("pracovnik")
 	viper.AutomaticEnv()
+
+	testSetupFixtures()
+
+	os.Exit(m.Run())
 }
