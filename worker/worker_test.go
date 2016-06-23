@@ -25,7 +25,7 @@ func (s *fakeStore) PutResult(result *schema.CheckResult) error {
 	return nil
 }
 
-func (s *fakeStore) GetResultsByCheckId(checkId string) (map[string]*schema.CheckResult, error) {
+func (s *fakeStore) GetResultsByCheckId(checkId string) ([]*schema.CheckResult, error) {
 	if s.fail {
 		return nil, errors.New("")
 	}
