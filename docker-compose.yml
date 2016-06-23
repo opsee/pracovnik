@@ -1,12 +1,9 @@
 postgres:
-    image: sameersbn/postgresql:9.4-11
-    ports:
-        - 5439:5432
-        - 5432
-    environment:
-        - PG_TRUST_LOCALNET=true
-        - PG_PASSWORD=postgres
-        - DB_USER=postgres
-        - DB_PASS=postgres
-        - DB_NAME=pracovnik_test
-    container_name: pracovnik_postgresql
+  image: postgres:9.5
+  ports:
+    - 5432:5432
+  environment:
+    - POSTGRES_PASSWORD=postgres
+    - POSTGRES_USER=postgres
+    - POSTGRES_DB=pracovnik_test
+  container_name: pracovnik_postgresql

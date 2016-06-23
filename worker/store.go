@@ -11,9 +11,9 @@ import (
 // GetState creates a State object populated by the check's settings and
 // by the current state if it exists. If it the state is unknown, then it
 // assumes a present state of OK.
-func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
+func GetAndLockState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
-	err := sqlx.Get(q, state, "SELECT states.state_id, states.customer_id, states.check_id, states.state_name, states.time_entered, states.last_updated, checks.min_failing_count, checks.min_failing_time, states.failing_count FROM check_states AS states JOIN checks ON (checks.id = states.check_id) WHERE states.customer_id = $1 AND checks.id = $2", customerId, checkId)
+	err := sqlx.Get(q, state, "SELECT states.state_id, states.customer_id, states.check_id, states.state_name, states.time_entered, states.last_updated, checks.min_failing_count, states.failing_count, states.response_count FROM check_states AS states JOIN checks ON (checks.id = states.check_id) WHERE states.customer_id = $1 AND checks.id = $2 FOR UPDATE OF states", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -40,20 +40,23 @@ func GetState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 			FailingCount:    0,
 		}
 	}
-	state.Results = map[string]*ResultMemo{}
+
 	state.MinFailingTime = state.MinFailingTime * time.Second
 
-	memos := []*ResultMemo{}
-	err = sqlx.Select(q, &memos, "SELECT * FROM check_state_memos WHERE customer_id = $1 AND check_id = $2", customerId, checkId)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	for _, memo := range memos {
-		state.Results[memo.BastionId] = memo
-	}
-
 	return state, nil
+}
+
+func UpdateState(q sqlx.Ext, state *State) error {
+	row := q.QueryRowx("SELECT sum(failing_count), sum(response_count) FROM check_state_memos WHERE check_id=$1 AND customer_id=$2", "check-id", "11111111-1111-1111-1111-111111111111")
+	if err := row.Err(); err != nil {
+		return err
+	}
+	var failingCount, responseCount int
+	row.Scan(&failingCount, &responseCount)
+	state.FailingCount = int32(failingCount)
+	state.ResponseCount = int32(responseCount)
+
+	return nil
 }
 
 func PutState(q sqlx.Ext, state *State) error {
@@ -76,7 +79,7 @@ func PutMemo(q sqlx.Ext, memo *ResultMemo) error {
 
 func GetMemo(q sqlx.Ext, checkId, bastionId string) (*ResultMemo, error) {
 	memo := &ResultMemo{}
-	err := sqlx.Select(q, memo, "SELECT * FROM check_state_memos WHERE check_id = ? AND bastion_id = ?", checkId, bastionId)
+	err := sqlx.Get(q, memo, "SELECT * FROM check_state_memos WHERE check_id = $1 AND bastion_id = $2 LIMIT 1", checkId, bastionId)
 	if err != nil {
 		return nil, err
 	}

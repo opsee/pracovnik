@@ -87,17 +87,16 @@ func ResultMemoFromCheckResult(result *schema.CheckResult) *ResultMemo {
 }
 
 type State struct {
-	CheckId         string                 `json:"check_id" db:"check_id"`
-	CustomerId      string                 `json:"customer_id" db:"customer_id"`
-	Id              StateId                `json:"state_id" db:"state_id"`
-	State           string                 `json:"state_name" db:"state_name"`
-	TimeEntered     time.Time              `json:"time_entered" db:"time_entered"`
-	LastUpdated     time.Time              `json:"last_updated" db:"last_updated"`
-	MinFailingCount int32                  `json:"min_failing_count" db:"min_failing_count"`
-	MinFailingTime  time.Duration          `json:"min_failing_time" db:"min_failing_time"`
-	FailingCount    int32                  `json:"failing_count" db:"failing_count"`
-	ResponseCount   int32                  `json:"response_count" db:"response_count"`
-	Results         map[string]*ResultMemo `json:"-"` // map[bastion_id]failing_count
+	CheckId         string        `json:"check_id" db:"check_id"`
+	CustomerId      string        `json:"customer_id" db:"customer_id"`
+	Id              StateId       `json:"state_id" db:"state_id"`
+	State           string        `json:"state_name" db:"state_name"`
+	TimeEntered     time.Time     `json:"time_entered" db:"time_entered"`
+	LastUpdated     time.Time     `json:"last_updated" db:"last_updated"`
+	MinFailingCount int32         `json:"min_failing_count" db:"min_failing_count"`
+	MinFailingTime  time.Duration `json:"min_failing_time" db:"min_failing_time"`
+	FailingCount    int32         `json:"failing_count" db:"failing_count"`
+	ResponseCount   int32         `json:"response_count" db:"response_count"`
 }
 
 func AddHook(hook TransitionHook) {
@@ -132,20 +131,6 @@ func (state *State) TimeInState() time.Duration {
 // proposed change to the current state (a new CheckResult object), update the
 // state for the check associated with the result.
 func (state *State) Transition(result *schema.CheckResult) error {
-	// update failing count.
-	var (
-		totalFails    int32
-		responseCount int32
-	)
-
-	state.Results[result.BastionId] = ResultMemoFromCheckResult(result)
-	for _, memo := range state.Results {
-		responseCount += int32(memo.ResponseCount)
-		totalFails += memo.FailingCount
-	}
-	state.FailingCount = totalFails
-	state.ResponseCount = responseCount
-
 	state.LastUpdated = time.Now()
 
 	sFn, ok := StateFnMap[state.Id]
