@@ -13,7 +13,7 @@ import (
 // assumes a present state of OK.
 func GetAndLockState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 	state := &State{}
-	err := sqlx.Get(q, state, "SELECT states.state_id, states.customer_id, states.check_id, states.state_name, states.time_entered, states.last_updated, checks.min_failing_count, states.failing_count, states.response_count FROM check_states AS states JOIN checks ON (checks.id = states.check_id) WHERE states.customer_id = $1 AND checks.id = $2 FOR UPDATE OF states", customerId, checkId)
+	err := sqlx.Get(q, state, "SELECT states.state_id, states.customer_id, states.check_id, states.state_name, states.time_entered, states.last_updated, checks.min_failing_count, checks.min_failing_time, states.failing_count, states.response_count FROM check_states AS states JOIN checks ON (checks.id = states.check_id) WHERE states.customer_id = $1 AND checks.id = $2 FOR UPDATE OF states", customerId, checkId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
