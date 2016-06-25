@@ -92,36 +92,41 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 	memo.FailingCount = int32(w.result.FailingCount())
 	memo.ResponseCount = len(w.result.Responses)
 
+	if err := PutMemo(tx, memo); err != nil {
+		logger.Debug("Error putting check state memo.")
+		rollback(logger, tx)
+		return nil, err
+	}
+	logger.Debug("Put memo: ", memo)
+
 	state, err := GetAndLockState(tx, w.result.CustomerId, w.result.CheckId)
 	if err != nil {
 		logger.WithError(err).Error("Error getting state.")
 		rollback(logger, tx)
 		return nil, err
 	}
-
-	if err := PutMemo(tx, memo); err != nil {
-		logger.Debug("Error putting check state memo.")
-		rollback(logger, tx)
-		return nil, err
-	}
+	logger.Debug("Got state: ", state)
 
 	if err := UpdateState(tx, state); err != nil {
 		logger.Debug("Error updating state from DB.")
 		rollback(logger, tx)
 		return nil, err
 	}
+	logger.Debug("Updated state: ", state)
 
 	if err := state.Transition(w.result); err != nil {
 		logger.WithError(err).Error("Error transitioning state.")
 		rollback(logger, tx)
 		return nil, err
 	}
+	logger.Debug("State after transition: ", state)
 
 	if err := PutState(tx, state); err != nil {
 		logger.WithError(err).Error("Error storing state.")
 		rollback(logger, tx)
 		return nil, err
 	}
+	logger.Debug("State after put state: ", state)
 
 	// still try to store the result even if we couldn't transition
 	// check state?
@@ -130,6 +135,7 @@ func (w *CheckWorker) Execute() (interface{}, error) {
 	if err := commit(logger, tx); err != nil {
 		logger.WithError(err).Error("Could not commit check state.")
 	}
+	logger.Debug("committed state.")
 
 	if err := w.rStore.PutResult(w.result); err != nil {
 		logger.WithError(err).Error("Error putting CheckResult to dynamodb.")

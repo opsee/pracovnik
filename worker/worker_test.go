@@ -47,8 +47,11 @@ func TestPutResultFailure(t *testing.T) {
 func TestExistingState(t *testing.T) {
 	db, err := sqlx.Open("postgres", viper.GetString("postgres_conn"))
 	assert.Nil(t, err)
+	db.MustExec("DELETE FROM check_states")
+	db.MustExec("DELETE FROM check_state_memos")
+
 	dynamo := &fakeStore{false}
-	result := testMockResult(2, 0)
+	result := testMockResult(2, 1)
 
 	state := &State{
 		CheckId:     "check-id",
@@ -65,6 +68,16 @@ func TestExistingState(t *testing.T) {
 	wrkr := NewCheckWorker(db, dynamo, result)
 	_, err = wrkr.Execute()
 	assert.Nil(t, err)
+
+	tx, err := db.Beginx()
+	assert.Nil(t, err)
+	state, err = GetAndLockState(tx, result.CustomerId, result.CheckId)
+	assert.Nil(t, err)
+	assert.NotNil(t, state)
+	assert.Equal(t, "FAIL_WAIT", state.State)
+	assert.Equal(t, int32(1), state.FailingCount)
+	assert.Equal(t, int32(2), state.ResponseCount)
+	tx.Commit()
 }
 
 func testSetupFixtures() {

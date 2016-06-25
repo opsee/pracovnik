@@ -47,7 +47,7 @@ func GetAndLockState(q sqlx.Ext, customerId, checkId string) (*State, error) {
 }
 
 func UpdateState(q sqlx.Ext, state *State) error {
-	row := q.QueryRowx("SELECT sum(failing_count), sum(response_count) FROM check_state_memos WHERE check_id=$1 AND customer_id=$2", "check-id", "11111111-1111-1111-1111-111111111111")
+	row := q.QueryRowx("SELECT sum(failing_count), sum(response_count) FROM check_state_memos WHERE check_id=$1 AND customer_id=$2", state.CheckId, state.CustomerId)
 	if err := row.Err(); err != nil {
 		return err
 	}
