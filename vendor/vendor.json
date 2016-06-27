@@ -440,6 +440,12 @@
 			"revisionTime": "2016-06-22T19:52:58Z"
 		},
 		{
+			"checksumSHA1": "4SRqRNsZ2S+7ZXFbHn/4NxrflLU=",
+			"path": "github.com/opsee/logrus",
+			"revision": "6d9ae300aaf85d6acd2e5424081c7fcddb21dab8",
+			"revisionTime": "2016-05-24T09:24:53-04:00"
+		},
+		{
 			"checksumSHA1": "AdAlxYpERfxuIqtd5eQ0LumzbrE=",
 			"path": "github.com/opsee/protobuf/opseeproto",
 			"revision": "80795e4731494617481adfd61784ae7661bac338",
