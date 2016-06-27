@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/opsee/logrus"
 	"github.com/jmoiron/sqlx"
 	"github.com/opsee/basic/schema"
 	"github.com/opsee/pracovnik/results"

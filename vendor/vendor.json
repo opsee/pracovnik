@@ -9,12 +9,6 @@
 			"revisionTime": "2016-04-26T07:41:05Z"
 		},
 		{
-			"checksumSHA1": "htjvdG/znrHmFYRQBqA2vHrJsF4=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "f3cfb454f4c209e6668c95216c4744b8fddb2356",
-			"revisionTime": "2016-06-01T11:32:10Z"
-		},
-		{
 			"checksumSHA1": "BLs+hxf2TilvmPro6hR/CX9QoqE=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
@@ -111,26 +105,8 @@
 			"revisionTime": "2016-06-14T21:42:08Z"
 		},
 		{
-			"checksumSHA1": "nHHyS4+VgZOV7F3Xu87crArmbds=",
-			"path": "github.com/aws/aws-sdk-go/private/protocol/query",
-			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
-			"revisionTime": "2016-06-14T21:42:08Z"
-		},
-		{
-			"checksumSHA1": "5xzix1R8prUyWxgLnzUQoxTsfik=",
-			"path": "github.com/aws/aws-sdk-go/private/protocol/query/queryutil",
-			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
-			"revisionTime": "2016-06-14T21:42:08Z"
-		},
-		{
 			"checksumSHA1": "TW/7U+/8ormL7acf6z2rv2hDD+s=",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/rest",
-			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
-			"revisionTime": "2016-06-14T21:42:08Z"
-		},
-		{
-			"checksumSHA1": "LsCIsjbzX2r3n/AhpNJvAC5ueNA=",
-			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
 			"revisionTime": "2016-06-14T21:42:08Z"
 		},
@@ -155,12 +131,6 @@
 		{
 			"checksumSHA1": "CT/wROCklrL1EkTmd43QRZCfuNw=",
 			"path": "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute",
-			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
-			"revisionTime": "2016-06-14T21:42:08Z"
-		},
-		{
-			"checksumSHA1": "W8RZphZKLGqW/OkPakRkjXJmo18=",
-			"path": "github.com/aws/aws-sdk-go/service/sqs",
 			"revision": "d3b6d25135b4e09ecd39ea3c2a5cad35279b0515",
 			"revisionTime": "2016-06-14T21:42:08Z"
 		},
