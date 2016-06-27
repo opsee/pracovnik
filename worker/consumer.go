@@ -3,7 +3,7 @@ package worker
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/opsee/logrus"
 	"github.com/nsqio/go-nsq"
 	"github.com/opsee/basic/schema"
 )
